@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "../DLL.h"
+#include "MyNode.h"
 #include "Dijkstra.generated.h"
 
 UCLASS()
@@ -27,7 +28,35 @@ public:
 	UPROPERTY(EditAnywhere)
 	UStaticMeshComponent* BaseMesh;
 
+	//The start node for the algorithm
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dijkstra")
+	int startNode;
+
+	//The end node for the algorithm
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dijkstra")
+	int endNode;
+
 	DLL<int> List;
+
+	UWorld* world;
+
+	//function to spawn the nodes
+	void spawnNodes();
+
+	//function to run dijkstra´s algorithm
+	void Dijkstra();
+
+
+	//number of nodes to be spawned
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Node")
+	int NumberOfNodes;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Node")
+	TSubclassOf<AMyNode> BP_MyNode;
+
+	TArray<AMyNode*> nodes;
+
+
 
 };
 
