@@ -3,23 +3,24 @@
 
 #include "MyNode.h"
 
-// Sets default values
+
 AMyNode::AMyNode()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+ 	// Marcus: Disabled tick. We don't need tick on nodes
+	// as they only store values. Save on performance.
+	PrimaryActorTick.bCanEverTick = false;
 
 	mesh = CreateDefaultSubobject<UStaticMeshComponent>("mesh"); 
 }
 
-// Called when the game starts or when spawned
+
 void AMyNode::BeginPlay()
 {
 	Super::BeginPlay();
-	
+	DrawDebugSphere(GetWorld(), GetActorLocation(), 50, 8, FColor::Red);
 }
 
-// Called every frame
+
 void AMyNode::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);

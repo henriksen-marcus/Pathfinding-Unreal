@@ -36,7 +36,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dijkstra")
 	int endNode;
 
-	DLL<int> List;
+	//DLL<int> List;
 
 	UWorld* world;
 
@@ -44,7 +44,7 @@ public:
 	void spawnNodes();
 
 	//function to run dijkstra´s algorithm
-	void Dijkstra();
+	void doDijkstra();
 
 
 	//number of nodes to be spawned
@@ -54,7 +54,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Node")
 	TSubclassOf<AMyNode> BP_MyNode;
 
-	TArray<AMyNode*> nodes;
+	
 
 
 
