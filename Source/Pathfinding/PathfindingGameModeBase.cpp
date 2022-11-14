@@ -2,9 +2,10 @@
 
 
 #include "PathfindingGameModeBase.h"
-
 #include "MeshPassProcessor.h"
+#include "Kismet/GameplayStatics.h"
 #include "Public/MyNode.h"
+#include "Engine/World.h"
 
 APathfindingGameModeBase::APathfindingGameModeBase()
 {
@@ -27,33 +28,54 @@ void APathfindingGameModeBase::SpawnNodes()
 
 	if (GetWorld())
 	{
-		/*float x;
-		float y;
-		float z;*/
-
-		for (int32 i{}; i < NumberOfNodes; i++)
+		FBox Box = FBox(FVector3d(-1000), FVector3d(1000));
+		FVector RandPoint;
+		
+		DrawDebugBox(GetWorld(), FVector(0), FVector(1000), FQuat(0), FColor::White, true);
+		
+		for (int i{}; i < NumberOfNodes; i++)
 		{
-			/*x = FMath::FRandRange(-1000.f, 1000.f);
-			y = FMath::FRandRange(-1000.f, 1000.f);
-			z = FMath::FRandRange(-1000.f, 1000.f);*/
-
-			FBox Box = FBox(FVector3d(-1000), FVector3d(1000));
-			FVector RandPoint = FMath::RandPointInBox(Box);
-
-			DrawDebugBox(GetWorld(), FVector(0), FVector(1000), FQuat(0), FColor::White, true);
-
-			//AMyNode* newNode = GetWorld()->SpawnActor<AMyNode>(BP_MyNode, FVector(0, 0, 0), FRotator(0.f));
-			AMyNode* newNode = GetWorld()->SpawnActor<AMyNode>(BP_MyNode, RandPoint, FRotator(0.f));
-
-			/*do
+			// Continue generating new random position as long as we
+			// don't meet the distance between each node requirement
+			do
 			{
-				spawn node (rand location)
+				RandPoint = FMath::RandPointInBox(Box);
 			}
-			while (dist_between_prev_node);*/
-
-			Nodes.Add(newNode);
+			while (FVector::Dist(PrevLoc, RandPoint) < 50);
+			
+			AMyNode* NewNode = GetWorld()->SpawnActor<AMyNode>(BP_MyNode, RandPoint, FRotator(0.f));
+			PrevLoc = RandPoint;
+			Nodes.Add(NewNode);
 		}
 		UE_LOG(LogTemp, Warning, TEXT("Nodes added to array."));
 	}
 }
 
+void APathfindingGameModeBase::SetupNodeConnections()
+{
+	for (auto node : Nodes)
+	{
+		TArray<FOverlapResult> Result;
+		bool success = GetWorld()->OverlapMultiByChannel(
+			Result,
+			node->GetActorLocation(),
+			FQuat(),
+			ECollisionChannel::ECC_Visibility,
+			FCollisionShape::MakeSphere(100)
+			);
+
+		if (success)
+		{
+			for (auto item : Result)
+			{
+				MakeConnection(node, Cast<AMyNode>(item.GetActor()));
+			}
+		}
+	}
+}
+
+void APathfindingGameModeBase::MakeConnection(AMyNode* n1, AMyNode* n2)
+{
+	// Check that we aren't already connected
+	//if (in(n1->Connections, n2));
+}

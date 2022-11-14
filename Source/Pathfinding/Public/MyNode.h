@@ -46,7 +46,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Node")
 	bool visited = false;
 
-
+	UPROPERTY()
+	TArray<AMyNode*> Connections;
 
 	
 
