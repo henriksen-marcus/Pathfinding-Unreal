@@ -10,14 +10,15 @@ AMyNode::AMyNode()
 	// as they only store values. Save on performance.
 	PrimaryActorTick.bCanEverTick = false;
 
-	mesh = CreateDefaultSubobject<UStaticMeshComponent>("mesh"); 
+	//mesh = CreateDefaultSubobject<UStaticMeshComponent>("mesh"); 
 }
 
 
 void AMyNode::BeginPlay()
 {
 	Super::BeginPlay();
-	DrawDebugSphere(GetWorld(), GetActorLocation(), 50, 8, FColor::Red);
+	DrawDebugSphere(GetWorld(), GetActorLocation(), 20, 8, FColor::Red, true);
+	UE_LOG(LogTemp, Warning, TEXT("Spawned Node"))
 }
 
 

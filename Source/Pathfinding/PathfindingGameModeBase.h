@@ -15,10 +15,12 @@ class PATHFINDING_API APathfindingGameModeBase : public AGameModeBase
 {
 	GENERATED_BODY()
 
+	APathfindingGameModeBase();
+
 	virtual void BeginPlay() override;
 
 	// Spawns nodes with a random location within the specified bounds
-	void SpawnNodes(int32 Amount);
+	void SpawnNodes();
 
 	// The number of nodes to spawn
 	UPROPERTY(EditAnywhere, Category = "Node")

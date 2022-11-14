@@ -25,8 +25,8 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	//Node mesh
-	UPROPERTY(EditAnywhere, Category = "Node")
-	UStaticMeshComponent* mesh;
+	/*UPROPERTY(EditAnywhere, Category = "Node")
+	UStaticMeshComponent* mesh;*/
 
 	//distance between nodes
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Node")
