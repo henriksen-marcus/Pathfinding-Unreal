@@ -31,7 +31,7 @@ void APathfindingGameModeBase::SpawnNodes()
 		float y;
 		float z;*/
 
-		for (int i{}; i < NumberOfNodes; i++)
+		for (int32 i{}; i < NumberOfNodes; i++)
 		{
 			/*x = FMath::FRandRange(-1000.f, 1000.f);
 			y = FMath::FRandRange(-1000.f, 1000.f);

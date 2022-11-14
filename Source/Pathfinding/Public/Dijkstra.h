@@ -25,38 +25,22 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	UPROPERTY(EditAnywhere)
-	UStaticMeshComponent* BaseMesh;
-
 	//The start node for the algorithm
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dijkstra")
-	int startNode;
+	int32 startNode;
 
 	//The end node for the algorithm
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dijkstra")
-	int endNode;
+	int32 endNode;
 
 	//DLL<int> List;
 
-	UWorld* world;
-
-	//function to spawn the nodes
-	void spawnNodes();
+	//UWorld* world;
 
 	//function to run dijkstra´s algorithm
 	void doDijkstra();
 
-
-	//number of nodes to be spawned
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Node")
-	int NumberOfNodes;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Node")
-	TSubclassOf<AMyNode> BP_MyNode;
-
-	
-
-
+	class APathfindingGameModeBase* gamemode;
 
 };
 

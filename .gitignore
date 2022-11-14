@@ -13,3 +13,6 @@ Plugins
 *.suo
 *.xcodeproj
 *.xcworkspace
+UCT.py
+uct_config.json
+Pathfinding.sln.DotSettings.user
