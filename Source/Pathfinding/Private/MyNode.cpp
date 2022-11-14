@@ -11,6 +11,12 @@ AMyNode::AMyNode()
 	PrimaryActorTick.bCanEverTick = false;
 
 	//mesh = CreateDefaultSubobject<UStaticMeshComponent>("mesh"); 
+
+	distanceValue = 0;
+	timeToTravel = 0;
+	waitTime = 0;
+	visited = false; 
+
 }
 
 
