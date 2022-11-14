@@ -30,17 +30,17 @@ public:
 
 	//distance between nodes
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Node")
-	int32 distanceValue;
+	int distanceValue;
 
 	//time to travel from node to node
 	//time to travel will be random
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Node")
-	int32 timeToTravel;
+	int timeToTravel;
 
 	//time spent waiting at each node
 	//time to wait will be random
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Node")
-	int32 waitTime;
+	int waitTime;
 
 	//bool to check if the node has been visited
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Node")
