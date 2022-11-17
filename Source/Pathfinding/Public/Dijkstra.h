@@ -41,6 +41,17 @@ public:
 	void doDijkstra();
 
 	class APathfindingGameModeBase* gamemode;
+	class AMyNode* mNode;
+
+	//function to initialize the variables
+	void initialize();
+
+	//function to get the nearest node 
+	int getNearest();
+
+	//defined infinity
+	#define INF = 999
+
 
 };
 
