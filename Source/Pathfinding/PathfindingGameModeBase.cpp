@@ -6,15 +6,20 @@
 #include "Kismet/GameplayStatics.h"
 #include "Public/MyNode.h"
 #include "Engine/World.h"
+#include "Public/Dijkstra2.h"
 
 APathfindingGameModeBase::APathfindingGameModeBase()
 {
-	NumberOfNodes = 0;
+	NumberOfNodes = 20;
+	NodeConnectionRadius = 150;
 }
 
 void APathfindingGameModeBase::BeginPlay()
 {
 	SpawnNodes();
+	ADijkstra2* Alg = Cast<ADijkstra2>(GetWorld()->SpawnActor(ADijkstra2::StaticClass()));
+	if (Alg) Alg->doDijkstra(Nodes, 0, FMath::RandRange(1, Nodes.Num() - 1));
+	else {UE_LOG(LogTemp, Warning, TEXT("Could not cast!"));}
 }
 
 void APathfindingGameModeBase::SpawnNodes()
@@ -47,7 +52,8 @@ void APathfindingGameModeBase::SpawnNodes()
 			PrevLoc = RandPoint;
 			Nodes.Add(NewNode);
 		}
-		UE_LOG(LogTemp, Warning, TEXT("Nodes added to array."));
+		UE_LOG(LogTemp, Warning, TEXT("PathfindingGameModeBase.cpp: Nodes added to array."));
+		SetupNodeConnections();
 	}
 }
 
@@ -61,15 +67,27 @@ void APathfindingGameModeBase::SetupNodeConnections()
 			node->GetActorLocation(),
 			FQuat(),
 			ECollisionChannel::ECC_Visibility,
-			FCollisionShape::MakeSphere(100)
+			FCollisionShape::MakeSphere(NodeConnectionRadius)
 			);
-
+		
 		if (success)
 		{
+			
 			for (auto item : Result)
 			{
-				MakeConnection(node, Cast<AMyNode>(item.GetActor()));
+				AMyNode* OverlappedNode = Cast<AMyNode>(item.GetActor());
+				UE_LOG(LogTemp, Warning, TEXT("Collided with: %s"), *item.GetActor()->GetName());
+				// We might have collided with something else, in which case the cast will fail
+				if (OverlappedNode)
+				{
+					DrawDebugSphere(GetWorld(), node->GetActorLocation(), NodeConnectionRadius, 16, FColor::Green, true);
+					MakeConnection(node, OverlappedNode);
+				}
 			}
+		}
+		else
+		{
+			DrawDebugSphere(GetWorld(), node->GetActorLocation(), NodeConnectionRadius, 16, FColor::Blue, true);
 		}
 	}
 }
@@ -77,5 +95,17 @@ void APathfindingGameModeBase::SetupNodeConnections()
 void APathfindingGameModeBase::MakeConnection(AMyNode* n1, AMyNode* n2)
 {
 	// Check that we aren't already connected
-	//if (in(n1->Connections, n2));
+	//if (in(n1->Connections, n2) || in(n2->Connections, n1))
+	//{
+	//	UE_LOG(LogTemp, Warning, TEXT("Object is already connected."));
+	//	return;
+	//}
+	n1->Connections.Add(n2);
+	n2->Connections.Add(n1);
+	DrawLine(n1, n2);
+}
+
+void APathfindingGameModeBase::DrawLine(AMyNode* n1, AMyNode* n2, FColor Color)
+{
+	DrawDebugLine(GetWorld(), n1->GetActorLocation(), n2->GetActorLocation(), Color, true);
 }

@@ -10,13 +10,18 @@ AMyNode::AMyNode()
 	// as they only store values. Save on performance.
 	PrimaryActorTick.bCanEverTick = false;
 
-	//mesh = CreateDefaultSubobject<UStaticMeshComponent>("mesh"); 
+	Collision = CreateDefaultSubobject<USphereComponent>(TEXT("Collision"));
+	// Custom collision channel for only overlapping with other nodes
+	//Collision->SetCollisionProfileName(FName("NodeOverlap"));
+	Collision->SetCollisionProfileName(FName("OverlapAll"));
+	SetRootComponent(Collision); 
 
 	distanceValue = 0;
 	timeToTravel = 0;
 	waitTime = 0;
 	visited = false; 
 
+	
 }
 
 
@@ -24,7 +29,7 @@ void AMyNode::BeginPlay()
 {
 	Super::BeginPlay();
 	DrawDebugSphere(GetWorld(), GetActorLocation(), 20, 8, FColor::Red, true);
-	UE_LOG(LogTemp, Warning, TEXT("Spawned Node"))
+	UE_LOG(LogTemp, Warning, TEXT("MyNode.cpp: Spawned Node"))
 }
 
 

@@ -16,6 +16,7 @@ Plugins
 Pathfinding.sln.DotSettings.user
 *.user
 UCT.py
+UCT.pyw
 uct_config.json
 UCT.exe
 

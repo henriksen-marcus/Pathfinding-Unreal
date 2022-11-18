@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Components/SphereComponent.h"
 #include "GameFramework/Actor.h"
 #include "Components/StaticMeshComponent.h"
 #include "MyNode.generated.h"
@@ -24,9 +25,9 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	//Node mesh
-	/*UPROPERTY(EditAnywhere, Category = "Node")
-	UStaticMeshComponent* mesh;*/
+	// Collision component, lets nodes overlap and detect each other
+	UPROPERTY(EditAnywhere, Category = "Node")
+	USphereComponent* Collision;
 
 	//distance between nodes
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Node")
