@@ -29,27 +29,14 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Node")
 	USphereComponent* Collision;
 
-	//distance between nodes
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Node")
-	int32 distanceValue;
-
-	//time to travel from node to node
-	//time to travel will be random
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Node")
-	int32 timeToTravel;
-
-	//time spent waiting at each node
-	//time to wait will be random
+	// Time to wait at each node
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Node")
 	int32 waitTime;
 
-	//bool to check if the node has been visited
+	// bool to check if the node has been visited
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Node")
 	bool visited = false;
 
 	UPROPERTY()
 	TArray<AMyNode*> Connections;
-
-	
-
 };

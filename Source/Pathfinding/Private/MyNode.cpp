@@ -11,13 +11,9 @@ AMyNode::AMyNode()
 	PrimaryActorTick.bCanEverTick = false;
 
 	Collision = CreateDefaultSubobject<USphereComponent>(TEXT("Collision"));
-	// Custom collision channel for only overlapping with other nodes
-	//Collision->SetCollisionProfileName(FName("NodeOverlap"));
 	Collision->SetCollisionProfileName(FName("OverlapAll"));
 	SetRootComponent(Collision); 
-
-	distanceValue = 0;
-	timeToTravel = 0;
+	
 	waitTime = 0;
 	visited = false; 
 
