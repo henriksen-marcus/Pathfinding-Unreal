@@ -2,6 +2,8 @@
 
 
 #include "PathfindingGameModeBase.h"
+
+#include "DiffResults.h"
 #include "MeshPassProcessor.h"
 #include "Kismet/GameplayStatics.h"
 #include "Public/MyNode.h"
@@ -12,6 +14,7 @@ APathfindingGameModeBase::APathfindingGameModeBase()
 {
 	NumberOfNodes = 20;
 	NodeConnectionRadius = 150;
+	DrawBounds = false;
 }
 
 void APathfindingGameModeBase::BeginPlay()
@@ -19,13 +22,14 @@ void APathfindingGameModeBase::BeginPlay()
 	SpawnNodes();
 	ADijkstra2* Alg = Cast<ADijkstra2>(GetWorld()->SpawnActor(ADijkstra2::StaticClass()));
 	if (Alg) Alg->doDijkstra(Nodes, 0, FMath::RandRange(1, Nodes.Num() - 1));
-	else {UE_LOG(LogTemp, Warning, TEXT("Could not cast!"));}
+	else { UE_LOG(LogTemp, Warning, TEXT("Could not cast!")); }
 }
 
 void APathfindingGameModeBase::SpawnNodes()
 {
 	if (Nodes.Num())
 	{
+		//todo: Clear arr and del all nodes here
 		// Are you sure we don't want to be able to call spawnNodes()
 		// to delete the current nodes and spawn new ones (reset)?
 		return;
@@ -33,10 +37,13 @@ void APathfindingGameModeBase::SpawnNodes()
 
 	if (GetWorld())
 	{
-		FBox Box = FBox(FVector3d(-1000), FVector3d(1000));
+		const FBox Box = FBox(FVector3d(-1000), FVector3d(1000));
 		FVector RandPoint;
-		
-		DrawDebugBox(GetWorld(), FVector(0), FVector(1000), FQuat(0), FColor::White, true);
+
+		if (DrawBounds)
+		{
+			DrawDebugBox(GetWorld(), FVector(0), FVector(1000), FQuat(0), FColor::White, true);
+		}
 		
 		for (int i{}; i < NumberOfNodes; i++)
 		{
@@ -52,43 +59,48 @@ void APathfindingGameModeBase::SpawnNodes()
 			PrevLoc = RandPoint;
 			Nodes.Add(NewNode);
 		}
-		UE_LOG(LogTemp, Warning, TEXT("PathfindingGameModeBase.cpp: Nodes added to array."));
+		UpdateNodeOverlapSpheres();
 		SetupNodeConnections();
 	}
 }
 
 void APathfindingGameModeBase::SetupNodeConnections()
 {
-	for (auto node : Nodes)
+	for (const auto node : Nodes)
 	{
 		TArray<FOverlapResult> Result;
-		bool success = GetWorld()->OverlapMultiByChannel(
+
+		// Check if we overlap with any nodes within the
+		// NodeConnectionRadius. NOTE: This specific function
+		// does NOT return true with overlaps! Only blocking hits!
+		GetWorld()->OverlapMultiByProfile(
 			Result,
 			node->GetActorLocation(),
 			FQuat(),
-			ECollisionChannel::ECC_Visibility,
-			FCollisionShape::MakeSphere(NodeConnectionRadius)
-			);
-		
-		if (success)
+			FName("NodeOverlap"),
+			FCollisionShape::MakeSphere(NodeConnectionRadius),
+			FCollisionQueryParams::DefaultQueryParam);
+
+		// If there were any overlaps
+		if (Result.Num() > 1)
 		{
-			
-			for (auto item : Result)
+			for (const auto item : Result)
 			{
-				AMyNode* OverlappedNode = Cast<AMyNode>(item.GetActor());
-				UE_LOG(LogTemp, Warning, TEXT("Collided with: %s"), *item.GetActor()->GetName());
 				// We might have collided with something else, in which case the cast will fail
-				if (OverlappedNode)
+				if (AMyNode* OverlappedNode = Cast<AMyNode>(item.GetActor()))
 				{
-					DrawDebugSphere(GetWorld(), node->GetActorLocation(), NodeConnectionRadius, 16, FColor::Green, true);
 					MakeConnection(node, OverlappedNode);
 				}
 			}
 		}
-		else
-		{
-			DrawDebugSphere(GetWorld(), node->GetActorLocation(), NodeConnectionRadius, 16, FColor::Blue, true);
-		}
+	}
+}
+
+void APathfindingGameModeBase::UpdateNodeOverlapSpheres()
+{
+	for (auto node : Nodes)
+	{
+		node->Collision->SetSphereRadius(NodeConnectionRadius);
 	}
 }
 
@@ -105,7 +117,7 @@ void APathfindingGameModeBase::MakeConnection(AMyNode* n1, AMyNode* n2)
 	DrawLine(n1, n2);
 }
 
-void APathfindingGameModeBase::DrawLine(AMyNode* n1, AMyNode* n2, FColor Color)
+void APathfindingGameModeBase::DrawLine(AMyNode* n1, AMyNode* n2, FColor Color) const
 {
 	DrawDebugLine(GetWorld(), n1->GetActorLocation(), n2->GetActorLocation(), Color, true);
 }

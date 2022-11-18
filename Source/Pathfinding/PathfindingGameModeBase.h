@@ -43,6 +43,10 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Node")
 	int32 NodeDist;
 
+	// Whether to draw the bounds that the nodes spawn in
+	UPROPERTY(EditAnywhere)
+	bool DrawBounds;
+
 	UPROPERTY(EditAnywhere, Category = "Node")
 	TSubclassOf<AMyNode> BP_MyNode;
 
@@ -54,6 +58,11 @@ public:
 
 	// Iterates through each node and makes connections to the closest ones
 	void SetupNodeConnections();
+
+	/**
+	 * @brief Set each node's collision component to NodeConnectionRadius
+	 */
+	void UpdateNodeOverlapSpheres();
 
 	/**
 	 * @brief Add each node to each other's connection arrays,
@@ -74,7 +83,7 @@ public:
 	/**
 	 * @brief Draw a debug line between the two passed nodes.
 	 */
-	void DrawLine(AMyNode* n1, AMyNode* n2, FColor Color = FColor::White);
+	void DrawLine(AMyNode* n1, AMyNode* n2, FColor Color = FColor::White) const;
 };
 
 template <class T>
