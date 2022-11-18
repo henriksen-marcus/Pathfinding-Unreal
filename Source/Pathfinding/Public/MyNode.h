@@ -14,29 +14,28 @@ class PATHFINDING_API AMyNode : public AActor
 	GENERATED_BODY()
 	
 public:	
-	// Sets default values for this actor's properties
 	AMyNode();
 
 protected:
-	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
 public:	
-	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
 	// Collision component, lets nodes overlap and detect each other
 	UPROPERTY(EditAnywhere, Category = "Node")
 	USphereComponent* Collision;
 
-	// Time to wait at each node
+	// Time to finish, how long the algorithm needs to wait at this
+	// node before proceeding. Adds to the cost.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Node")
-	int32 waitTime;
+	int32 WaitTime;
 
-	// bool to check if the node has been visited
+	// If the node has been checked/visited by the algorithm
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Node")
-	bool visited = false;
+	bool bVisited = false;
 
+	// Reference to all other nodes that are connected
 	UPROPERTY()
 	TArray<AMyNode*> Connections;
 };

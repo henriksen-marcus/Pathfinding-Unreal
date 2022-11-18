@@ -55,7 +55,7 @@ void ADijkstra::doDijkstra(TArray<AMyNode*> Nodes, int32 Origin, int32 Destinati
 
 int32 ADijkstra::getNearest(AMyNode* current)
 {
-	if (!gamemode) return;
+	if (!gamemode) return -1;
 
 	int32 minDistVal = MAX_int32;
 
@@ -65,7 +65,7 @@ int32 ADijkstra::getNearest(AMyNode* current)
 	for (auto node : gamemode->Nodes)
 	{
 		int32 dist = FVector::Dist(current->GetActorLocation(), node->GetActorLocation());
-		if (!node->visited && dist < minDistVal)
+		if (!node->bVisited && dist < minDistVal)
 		{
 			minDistVal = dist;
 		}
