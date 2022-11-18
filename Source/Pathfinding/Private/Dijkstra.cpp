@@ -7,6 +7,7 @@
 #include "MyNode.h"
 #include "../PathfindingGameModeBase.h"
 #include "DrawDebugHelpers.h"
+#include "Math/Vector.h"
 
 
 ADijkstra::ADijkstra()
@@ -20,7 +21,7 @@ ADijkstra::ADijkstra()
 void ADijkstra::BeginPlay()
 {
 	Super::BeginPlay();
-	doDijkstra();
+	gamemode = Cast<APathfindingGameModeBase>(GetWorld()->GetAuthGameMode());
 
 	//List.fill(DLL_Base::asc, 0, 100);
 	//UE_LOG(LogTemp, Warning, TEXT("List elem 0: %d"), List[50]);
@@ -34,69 +35,45 @@ void ADijkstra::Tick(float DeltaTime)
 
 }
 
-void ADijkstra::doDijkstra()
+void ADijkstra::doDijkstra(TArray<AMyNode*> Nodes, int32 Origin, int32 Destination)
 {
-	gamemode = Cast<APathfindingGameModeBase>(GetWorld()->GetAuthGameMode()); 
-	int32 numNodes = gamemode->NumberOfNodes;
-	startNode = FMath::RandRange(0, numNodes - 1);
-	endNode = FMath::RandRange(0, numNodes - 1);
-	
-	GEngine->AddOnScreenDebugMessage(-1, 12.f, FColor::Green, FString::Printf(TEXT("StartNode position: %d"), startNode));
-	GEngine->AddOnScreenDebugMessage(1, 12.f, FColor::Red, FString::Printf(TEXT("EndNode position: %d"), endNode));
+	// nearest gives the index to the nearest node from current node
+	int32 nearest = Origin;
 
-	for (int32 i = 0; i < numNodes; i++)
+
+	for (int32 i = 0; i < gamemode->NumberOfNodes; i++)
 	{
-		int32 nearest = getNearest();
+		//add to array of visited nodes with the shortest path
+		//
+		nearest = getNearest(Nodes[nearest]);
 
 	}
-
+	
 	UE_LOG(LogTemp, Warning, TEXT("doDijkstra is running"));
 }
 
-void ADijkstra::initialize()
+
+int32 ADijkstra::getNearest(AMyNode* current)
 {
-	gamemode = Cast<APathfindingGameModeBase>(GetWorld()->GetAuthGameMode());
-	int32 numNodes = gamemode->NumberOfNodes;
-	TArray<AMyNode*> nodeArray = gamemode->Nodes;
+	if (!gamemode) return;
 
-	//mNode = Cast<AMyNode>(GetWorld()->GetAuthGameMode());
-	//int32 dist = mNode->distanceValue;
-	int32 dist[10]; //array to hold distance values for the nodes
+	int32 minDistVal = MAX_int32;
 
-	//to set all the nodes distance to infinity and the startnode distance to 0
-	for (int32 i = 0; i < numNodes; i++) 
+	//for the number of connections each node has with other nodes
+	//current->Connections.Num();
+
+	for (auto node : gamemode->Nodes)
 	{
-			 nodeArray[i] = i;
-			 dist[i] = INF; //set all nodes distance to infinity
-	}
-
-	dist[startNode] = 0; // set the distance of the startnode to 0
-}
-
-int ADijkstra::getNearest()
-{
-	gamemode = Cast<APathfindingGameModeBase>(GetWorld()->GetAuthGameMode());
-	int32 numNodes = gamemode->NumberOfNodes;
-
-	mNode = Cast<AMyNode>(GetWorld()->GetAuthGameMode());
-	bool visited = mNode->visited;
-	int32 dist = mNode->distanceValue;
-
-	int32 minDistVal = INF; //the shortest distance to the nearest node
-	int32 minNode = 0; //minimum value node
-
-	//goes through the number of nodes and checks if the nodes has
-	//been visited and the distance to the nodes is lower than the minimum distance  
-	for (int32 i = 0; i < numNodes; i++)
-	{
-
-		if (!visited[i] && dist[i] < minDistVal)
+		int32 dist = FVector::Dist(current->GetActorLocation(), node->GetActorLocation());
+		if (!node->visited && dist < minDistVal)
 		{
-			minDistVal = dist[i]; //update the minimum distance 
-			minNode = i; //update which node we are on
+			minDistVal = dist;
 		}
+		
 	}
-	return minNode; //return the nearest node 
+
+	return minDistVal;
+
 }
 
 

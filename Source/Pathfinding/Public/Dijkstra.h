@@ -38,19 +38,14 @@ public:
 	//UWorld* world;
 
 	//function to run dijkstra´s algorithm
-	void doDijkstra();
+	void doDijkstra(TArray<AMyNode*>, int32 Origin, int32 Destination);
 
 	class APathfindingGameModeBase* gamemode;
 	class AMyNode* mNode;
 
-	//function to initialize the variables
-	void initialize();
-
 	//function to get the nearest node 
-	int getNearest();
+	int32 getNearest(AMyNode* current);
 
-	//defined infinity
-	#define INF = 999
 
 
 };
