@@ -42,6 +42,9 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Node")
 	float NodeDist;
 
+	UPROPERTY(EditAnywhere, Category = "Node")
+	int32 MaxConnections;
+
 	// Array containing pointers to all spawned nodes
 	UPROPERTY(VisibleAnywhere, Category = "Node")
 	TArray<AMyNode*> Nodes;

@@ -18,6 +18,7 @@ APathfindingGameModeBase::APathfindingGameModeBase()
 	DrawBounds = false;
 	ArrowSize = 1000.f;
 	NodeSize = 15.f;
+	MaxConnections = 3;
 	Alphabet = {"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"};
 }
 
@@ -26,11 +27,7 @@ void APathfindingGameModeBase::BeginPlay()
 	if (NumberOfNodes < 2) NumberOfNodes = 2;
 	
 	SpawnNodes();
-
-	for (auto ni : Nodes[0]->Connections)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Name: %s"), *ni->Name);
-	}
+	
 	/*Nodes.Add(GetWorld()->SpawnActor<AMyNode>(BP_MyNode, FVector(500, 0, 0), FRotator(0.f)));
 	Nodes.Add(GetWorld()->SpawnActor<AMyNode>(BP_MyNode, FVector(0, 0, 0), FRotator(0.f)));
 	Nodes.Add(GetWorld()->SpawnActor<AMyNode>(BP_MyNode, FVector(0, 500, 0), FRotator(0.f)));
@@ -76,9 +73,10 @@ void APathfindingGameModeBase::BeginPlay()
 		//if (success) DrawPath(Dijkstra->ShortestPathTree);
 		//else UE_LOG(LogTemp, Warning, TEXT("Dijkstra failed."));
 	}
-	else { UE_LOG(LogTemp, Warning, TEXT("Could not cast!")); }
-
-	
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Could not cast!"));
+	}
 }
 
 void APathfindingGameModeBase::SpawnNodes()
@@ -152,20 +150,32 @@ void APathfindingGameModeBase::SetupNodeConnections()
 			node->GetActorLocation(),
 			FQuat(),
 			FName("NodeOverlap"),
-			FCollisionShape::MakeSphere(NodeConnectionRadius),
+			FCollisionShape::MakeSphere(1000),
 			FCollisionQueryParams::DefaultQueryParam);
 
+		Result.RemoveAt(0);
+
 		// If there were any overlaps
-		if (Result.Num() > 1)
+		if (Result.Num())
 		{
+			const int32 MaxLoops = FMath::Min(Result.Num(), MaxConnections);
+			int32 ConnectionsMade = 0;
 			for (int32 i{}; i < Result.Num(); i++)
 			{
 				// We might have collided with something else, in which case the cast will fail
 				if (AMyNode* OverlappedNode = Cast<AMyNode>(Result[i].GetActor()))
 				{
 					// Skip self
-					if (OverlappedNode == node) continue;
-					MakeConnection(node, OverlappedNode);
+					/*if (OverlappedNode == node)
+					{
+						continue;
+					}*/
+					if (ConnectionsMade >= MaxLoops) break;
+					if (OverlappedNode->Connections.Num() < MaxConnections)
+					{
+						MakeConnection(node, OverlappedNode);
+						ConnectionsMade++;
+					}
 				}
 			}
 		}
