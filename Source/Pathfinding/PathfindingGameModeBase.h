@@ -23,46 +23,53 @@ class PATHFINDING_API APathfindingGameModeBase : public AGameModeBase
 	virtual void BeginPlay() override;
 
 public:
-
+	UPROPERTY(EditAnywhere, Category = "Node")
+	TSubclassOf<AMyNode> BP_MyNode;
+		
 	// The number of nodes to spawn
 	UPROPERTY(EditAnywhere, Category = "Node")
 	int32 NumberOfNodes;
 
 	// Radius from each node before it connects with another
 	UPROPERTY(EditAnywhere, Category = "Node")
-	int32 NodeConnectionRadius;
+	float NodeConnectionRadius;
+
+	// The size of the sphere marking each node
+	UPROPERTY(EditAnywhere, Category = "Node")
+	float NodeSize;
+
+	// The required distance between each node
+	UPROPERTY(EditAnywhere, Category = "Node")
+	float NodeDist;
 
 	// Array containing pointers to all spawned nodes
-	UPROPERTY(EditAnywhere, Category = "Node")
+	UPROPERTY(VisibleAnywhere, Category = "Node")
 	TArray<AMyNode*> Nodes;
 
 	// Location of the previous node spawned
 	FVector PrevLoc;
 
-	// The required distance between each node
-	UPROPERTY(EditAnywhere, Category = "Node")
-	int32 NodeDist;
-
 	// Whether to draw the bounds that the nodes spawn in
 	UPROPERTY(EditAnywhere)
 	bool DrawBounds;
+	
+	UPROPERTY(EditAnywhere)
+	float ArrowSize;
 
-	UPROPERTY(EditAnywhere, Category = "Node")
-	TSubclassOf<AMyNode> BP_MyNode;
-
+	TArray<FString> Alphabet;
+	
 
 	//---------------- Functions -------------------//
 
-	// Spawns nodes with a random location within the specified bounds
+	/**
+	 * @brief Spawns nodes with a random location within the specified bounds
+	 */
 	void SpawnNodes();
 
-	// Iterates through each node and makes connections to the closest ones
-	void SetupNodeConnections();
-
 	/**
-	 * @brief Set each node's collision component to NodeConnectionRadius
+	 * @brief Iterates through each node and makes connections to the closest ones
 	 */
-	void UpdateNodeOverlapSpheres();
+	void SetupNodeConnections();
 
 	/**
 	 * @brief Add each node to each other's connection arrays,
@@ -71,28 +78,29 @@ public:
 	void MakeConnection(AMyNode* n1, AMyNode* n2);
 
 	/**
-	 * @brief Does item exist in arr?
+	 * @brief Draw debug lines showing the shortest path
+	 * from the origin node to the destination node
+	 * @param SPT Shortest Path Tree
+	 */
+	void DrawPath(TArray<AMyNode*> SPT);
+
+	/**
+	 * @brief Check if item exists in arr
 	 * @tparam T Datatype
 	 * @param arr The array to search in
 	 * @param item The item to search for
 	 * @return Whether the item was found in arr.
 	 */
 	template<class T>
-	bool in(TArray<T> arr, T item);
-
-	/**
-	 * @brief Draw a debug line between the two passed nodes.
-	 */
-	void DrawLine(AMyNode* n1, AMyNode* n2, FColor Color = FColor::White) const;
+	bool In(TArray<T> arr, T item);
 };
 
 template <class T>
-bool APathfindingGameModeBase::in(TArray<T> arr, T item)
+bool APathfindingGameModeBase::In(TArray<T> Arr, T Item)
 {
-	//for (auto obj : arr)
-	for (int32 i{}; i < arr.Num(); i++)
+	for (const auto obj : Arr)
 	{
-		if (arr[i] == item) return true;
+		if (obj == Item) return true;
 	}
 	return false;
 }

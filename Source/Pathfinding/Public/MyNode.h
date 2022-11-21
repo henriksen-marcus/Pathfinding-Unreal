@@ -5,15 +5,16 @@
 #include "CoreMinimal.h"
 #include "Components/SphereComponent.h"
 #include "GameFramework/Actor.h"
-#include "Components/StaticMeshComponent.h"
 #include "MyNode.generated.h"
+
+class AMyNode;
 
 UCLASS()
 class PATHFINDING_API AMyNode : public AActor
 {
 	GENERATED_BODY()
 	
-public:	
+public:
 	AMyNode();
 
 protected:
@@ -26,16 +27,35 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Node")
 	USphereComponent* Collision;
 
-	// Time to finish, how long the algorithm needs to wait at this
-	// node before proceeding. Adds to the cost.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Node")
-	int32 WaitTime;
+	// Time to finish, adds to the cost
+	UPROPERTY(VisibleAnywhere, Category = "Node")
+	float WaitTime;
 
 	// If the node has been checked/visited by the algorithm
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Node")
+	UPROPERTY(VisibleAnywhere, Category = "Node")
 	bool bVisited = false;
-
-	// Reference to all other nodes that are connected
-	UPROPERTY()
+	
+	UPROPERTY(VisibleAnywhere, Category = "Node")
 	TArray<AMyNode*> Connections;
+
+	// The current lowest cost we have found from origin to this node in the algorithm
+	float CurrentCost;
+
+	// Ptr to the previous node according to the lowest cost we have found, aka "Path via"
+	UPROPERTY()
+	AMyNode* PreviousNode;
+
+	// The unique name of the node, should be a char like "A"
+	FString Name;
+
+	// Rendered text to display the name of the node
+	UPROPERTY()
+	class ATextRenderActor* NameDisplay;
+
+	UPROPERTY(EditAnywhere)
+	UMaterialInterface* TextMaterial;
+
+	void InitNode(FString _Name);
+
+	//void GetCost();
 };

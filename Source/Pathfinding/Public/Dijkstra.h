@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "../DLL.h"
 #include "MyNode.h"
 #include "Dijkstra.generated.h"
 
@@ -37,7 +36,7 @@ public:
 
 	//UWorld* world;
 
-	//function to run dijkstra´s algorithm
+	//function to run dijkstraï¿½s algorithm
 	void doDijkstra(TArray<AMyNode*>, int32 Origin, int32 Destination);
 
 	class APathfindingGameModeBase* gamemode;
