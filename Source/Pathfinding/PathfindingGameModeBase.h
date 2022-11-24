@@ -49,8 +49,13 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Node")
 	TSubclassOf<AMyNode> BP_MyNode;
 
+	UPROPERTY()
 	AActor* PlayerCurrentPawn;
+	
+	UPROPERTY()
 	class ALockedPawn* LockedPawn;
+	
+	UPROPERTY()
 	class APlayerPawn* PlayerPawn;
 	
 	// The size of the sphere marking each node
@@ -60,6 +65,9 @@ public:
 	// Array containing pointers to all spawned nodes
 	UPROPERTY(VisibleAnywhere, Category = "Node")
 	TArray<AMyNode*> Nodes;
+
+	UPROPERTY()
+	TArray<AMyNode*> CurrentPathTree;
 	
 	UPROPERTY(EditAnywhere)
 	float ArrowSize = 1000.f;
@@ -74,7 +82,9 @@ public:
 	UPROPERTY()
 	AMyNode* DestinationNode;
 
-	// If we have an active scene with a solved path on the screen
+	// If we have a successful shortest path supplied by
+	// one of the algorithms. Decides if we should display
+	// that path on screen.
 	bool bIsPathGenerated = false;
 	
 
@@ -164,9 +174,8 @@ public:
 	/**
 	 * @brief Draw debug lines showing the shortest path
 	 * from the origin node to the destination node
-	 * @param SPT Shortest Path Tree
 	 */
-	void DrawPath(TArray<AMyNode*>& SPT);
+	void DrawPath();
 
 	/**
 	 * @brief Simplified OverlapMultiByProfile() function
@@ -212,4 +221,7 @@ public:
 	void SwitchPawn();
 
 	void UpdateNodeNameRotations();
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void PawnSwitched();
 };

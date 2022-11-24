@@ -24,6 +24,9 @@ bool ADijkstra2::Start(const TArray<AMyNode*> Nodes, AMyNode* Origin, AMyNode* D
 {
 	UE_LOG(LogTemp, Warning, TEXT("Start()"));
 
+	// Safety check
+	if (!Nodes.Num() || !Origin || !Destination) return false;
+
 	CurrentNode = Origin;
 	CurrentNode->bVisited = true;
 	CurrentNode->CurrentCost = 0;

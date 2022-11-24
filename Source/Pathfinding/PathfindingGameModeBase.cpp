@@ -22,6 +22,8 @@ APathfindingGameModeBase::APathfindingGameModeBase() {}
 
 void APathfindingGameModeBase::BeginPlay()
 {
+	Super::BeginPlay();
+	
 	// We know that the initial pawn is a LockedPawn because it is set in the game mode settings
 	PlayerCurrentPawn = GetWorld()->GetFirstPlayerController()->GetPawn();
 	LockedPawn = Cast<ALockedPawn>(PlayerCurrentPawn);
@@ -36,7 +38,7 @@ void APathfindingGameModeBase::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	//DrawDebugSphere(GetWorld(), FVector(), 200, 32, FColor::Red);
-	if (bDrawBounds) DrawDebugBox(GetWorld(), FVector(), FVector(1000), FQuat(), FColor::White);
+	if (bDrawBounds) DrawDebugBox(GetWorld(), FVector(), FVector(1000), FQuat(), FColor::White, false, -1, 0, 4.f);
 	
 	for (const auto Node : Nodes)
 	{
@@ -54,7 +56,7 @@ void APathfindingGameModeBase::Tick(float DeltaTime)
 			}
 		}
 	}
-
+	DrawPath();
 	UpdateNodeNameRotations();
 }
 
@@ -121,6 +123,8 @@ void APathfindingGameModeBase::DeleteNodes()
 	}
 	// Clear nullptr references
 	Nodes.Empty();
+	CurrentPathTree.Empty();
+	bIsPathGenerated = false;
 }
 
 void APathfindingGameModeBase::Pathfind(EAlgorithm Algorithm)
@@ -130,12 +134,14 @@ void APathfindingGameModeBase::Pathfind(EAlgorithm Algorithm)
 	{
 	case EAlgorithm::Dijkstra:
 		{
-			
-			ADijkstra2* Dijkstra = Cast<ADijkstra2>(GetWorld()->SpawnActor(ADijkstra2::StaticClass()));
-			if (Dijkstra)
+			if (ADijkstra2* Dijkstra = Cast<ADijkstra2>(GetWorld()->SpawnActor(ADijkstra2::StaticClass())))
 			{
-				bool success = Dijkstra->Start(Nodes, OriginNode, DestinationNode);
-				if (success) DrawPath(Dijkstra->ShortestPathTree);
+				// If the Dijkstra algorithm succeeded, enable a variable used in tick to draw the shortest path
+				if (Dijkstra->Start(Nodes, OriginNode, DestinationNode))
+				{
+					CurrentPathTree = Dijkstra->ShortestPathTree;
+					bIsPathGenerated = true;
+				}
 				else UE_LOG(LogTemp, Warning, TEXT("Dijkstra failed."));
 			}
 			else { UE_LOG(LogTemp, Warning, TEXT("Could not cast!")); }
@@ -213,16 +219,16 @@ void APathfindingGameModeBase::DrawNodes()
 	}
 }
 
-void APathfindingGameModeBase::DrawPath(TArray<AMyNode*>& SPT)
+void APathfindingGameModeBase::DrawPath()
 {
-	for (int32 i{}; i < SPT.Num(); i++)
+	for (int32 i{}; i < CurrentPathTree.Num(); i++)
 	{
-		if (SPT.Num() >= i + 2)
+		if (CurrentPathTree.Num() >= i + 2)
 		{
-			FVector Loc1 = SPT[i]->GetActorLocation();
-			FVector Loc2 = SPT[i+1]->GetActorLocation();
+			FVector Loc1 = CurrentPathTree[i]->GetActorLocation();
+			FVector Loc2 = CurrentPathTree[i+1]->GetActorLocation();
 			//DrawDebugDirectionalArrow(GetWorld(), Loc1, Loc2, 1000, FColor::Red, true, -1, 0, 5);
-			DrawDebugLine(GetWorld(), Loc1, Loc2, FColor::Orange, true, -1, 0, 10);
+			DrawDebugLine(GetWorld(), Loc1, Loc2, FColor::Orange, false, -1, 0, 10);
 		}
 	}
 }
@@ -321,6 +327,7 @@ void APathfindingGameModeBase::SwitchPawn()
 		GetWorld()->GetFirstPlayerController()->SetShowMouseCursor(true);
 		PlayerCurrentPawn = LockedPawn;
 	}
+	PawnSwitched();
 }
 
 void APathfindingGameModeBase::UpdateNodeNameRotations()

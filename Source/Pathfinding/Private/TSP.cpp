@@ -39,7 +39,7 @@ int32 ATSP::doTSP(TArray<AMyNode*> Nodes, AMyNode* Origin)
 	}
 
 	int32 minDistance = INT_MAX; 
-	do
+	/*do
 	{
 		//current cost of the total distance
 		int32 currentDistCost = 0;
@@ -47,15 +47,15 @@ int32 ATSP::doTSP(TArray<AMyNode*> Nodes, AMyNode* Origin)
 		//goes through the nodes to get currentDistCost
 		for (auto Node : Nodes)
 		{
-			currentDistCost += Nodes[Origin][Node];
+			//currentDistCost += Nodes[Origin][Node];
 			Origin = Node;
 		}
-		currentDistCost += Nodes[Origin][Origin];
+		//currentDistCost += Nodes[Origin][Origin];
 
 		//update the min value of minDistance
 		minDistance = std::min(minDistance, currentDistCost);
 
-	} while (std::next_permutation(Nodes.begin(), Nodes.end()));
+	} while (std::next_permutation(Nodes.begin(), Nodes.end()));*/
 
 	return minDistance;
 }
