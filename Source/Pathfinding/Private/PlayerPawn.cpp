@@ -40,11 +40,11 @@ void APlayerPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
-	//PlayerInputComponent->BindAction(TEXT("Escape"), EInputEvent::IE_Pressed, this, &APlayerPawn::SwitchPawn);
+	PlayerInputComponent->BindAction(TEXT("Escape"), EInputEvent::IE_Pressed, this, &APlayerPawn::SwitchPawn);
 }
 
 void APlayerPawn::SwitchPawn()
 {
-	//GameModeBase->SwitchPawn();
+	GameModeBase->SwitchPawn();
 }
 
