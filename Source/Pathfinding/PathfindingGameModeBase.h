@@ -9,6 +9,29 @@
 
 class AMyNode;
 
+UENUM(BlueprintType)
+enum class EAlgorithm : uint8
+{
+	Dijkstra	UMETA(DisplayName = "Dijkstra"),
+	AStar		UMETA(DisplayName = "A*"),
+	TSM			UMETA(DisplayName = "Traveling Salesman")
+};
+
+UENUM(BlueprintType)
+enum class ESpawnMethod : uint8
+{
+	Random		UMETA(DisplayName = "Random"),
+	Grid		UMETA(DisplayName = "Grid"),
+	RandomGrid	UMETA(DisplayName = "Random Grid")
+};
+
+struct FNodeInfo
+{
+	AMyNode* Node;
+	float Dist;
+	FNodeInfo(AMyNode* _Node, float _Dist) : Node(_Node), Dist(_Dist) {}
+};
+
 /**
  * The class that controls and keeps the top level functions and
  * variables to use in all the pathfinding algorithms.
@@ -19,55 +42,103 @@ class PATHFINDING_API APathfindingGameModeBase : public AGameModeBase
 	GENERATED_BODY()
 
 	APathfindingGameModeBase();
-
 	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaTime) override;
 
 public:
 	UPROPERTY(EditAnywhere, Category = "Node")
 	TSubclassOf<AMyNode> BP_MyNode;
-		
-	// The number of nodes to spawn
-	UPROPERTY(EditAnywhere, Category = "Node")
-	int32 NumberOfNodes;
 
-	// Radius from each node before it connects with another
-	UPROPERTY(EditAnywhere, Category = "Node")
-	float NodeConnectionRadius;
-
+	AActor* PlayerCurrentPawn;
+	class ALockedPawn* LockedPawn;
+	class APlayerPawn* PlayerPawn;
+	
 	// The size of the sphere marking each node
 	UPROPERTY(EditAnywhere, Category = "Node")
-	float NodeSize;
-
-	// The required distance between each node
-	UPROPERTY(EditAnywhere, Category = "Node")
-	float NodeDist;
-
-	UPROPERTY(EditAnywhere, Category = "Node")
-	int32 MaxConnections;
+	float NodeSize = 20.f;
 
 	// Array containing pointers to all spawned nodes
 	UPROPERTY(VisibleAnywhere, Category = "Node")
 	TArray<AMyNode*> Nodes;
-
-	// Location of the previous node spawned
-	FVector PrevLoc;
-
-	// Whether to draw the bounds that the nodes spawn in
-	UPROPERTY(EditAnywhere)
-	bool DrawBounds;
 	
 	UPROPERTY(EditAnywhere)
-	float ArrowSize;
+	float ArrowSize = 1000.f;
 
-	TArray<FString> Alphabet;
+	TArray<FString> Alphabet = {"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"};
+
+	// The node we start pathfinding from
+	UPROPERTY()
+	AMyNode* OriginNode;
+
+	// The node we are trying to pathfind to
+	UPROPERTY()
+	AMyNode* DestinationNode;
+
+	// If we have an active scene with a solved path on the screen
+	bool bIsPathGenerated = false;
+	
+
+	//---------------- Runtime editable variables ----------------//
+	
+	// The number of nodes to spawn
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Node|Runtime")
+	int32 NumberOfNodes = 20;
+
+	// How many connections a node can have. Minimum = 2
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Node|Runtime")
+	int32 MaxConnections = 3;
+
+	// The required distance between each node
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Node|Runtime")
+	float NodeDist = 200.f;
+
+	// Radius from each node before it connects with another
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Node|Runtime")
+	float NodeConnectionRadius = 500.f;
+
+	// If we should display a sphere marking the NodeConnectionRadius
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Node|Runtime")
+	bool bShowConnectionRadius;
+
+	// If the text above each node should be visible
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Node|Runtime")
+	bool bShowNodeNames = true;
+
+	// Whether to draw the bounds that the nodes spawn in
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Runtime")
+	bool bDrawBounds = true;
+
+	// Whether to draw nodes that are not part of the path
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Runtime")
+	bool bDrawIrrelevantNodes = true;
 	
 
 	//---------------- Functions -------------------//
 
 	/**
-	 * @brief Spawns nodes with a random location within the specified bounds
+	 * @brief Spawns nodes with a random location within the specified bounds.
+	 * @param SpawnMethod  What algorithm to use.
 	 */
-	void SpawnNodes();
+	UFUNCTION(BlueprintCallable)
+	void SpawnNodes(ESpawnMethod SpawnMethod);
+
+	void SpawnRandom();
+	void SpawnGrid();
+	void SpawnRandomGrid();
+
+	/**
+	 * @brief Deletes all the nodes in the world.
+	 */
+	UFUNCTION(BlueprintCallable)
+	void DeleteNodes();
+
+	/**
+	 * @brief The branch function that runs the individual
+	 * pathfinding algorithms.
+	 * @param Algorithm Which pathfinding algorithm to use.
+	 */
+	UFUNCTION(BlueprintCallable)
+	void Pathfind(EAlgorithm Algorithm);
 
 	/**
 	 * @brief Iterates through each node and makes connections to the closest ones
@@ -81,29 +152,64 @@ public:
 	void MakeConnection(AMyNode* n1, AMyNode* n2);
 
 	/**
+	 * @brief Draws the debug spheres around the nodes
+	 */
+	void DrawNodes();
+
+	/**
+	 * @brief Sets the Origin and Destination node
+	 */
+	void SetStartFinish();
+
+	/**
 	 * @brief Draw debug lines showing the shortest path
 	 * from the origin node to the destination node
 	 * @param SPT Shortest Path Tree
 	 */
-	void DrawPath(TArray<AMyNode*> SPT);
+	void DrawPath(TArray<AMyNode*>& SPT);
 
 	/**
-	 * @brief Check if item exists in arr
-	 * @tparam T Datatype
-	 * @param arr The array to search in
-	 * @param item The item to search for
-	 * @return Whether the item was found in arr.
+	 * @brief Simplified OverlapMultiByProfile() function
+	 * for more readable code.
+	 * @param Location The position to check from
+	 * @param Radius How big the overlap sphere should span
+	 * @return Array over overlapped nodes
+	 * @remarks Returning the array like this is suboptimal,
+	 * I know, but it works for this scenario. I also wanted
+	 * a shorter function call.
 	 */
-	template<class T>
-	bool In(TArray<T> arr, T item);
-};
+	TArray<FOverlapResult> SphereOverlap(const FVector& Location, float Radius);
 
-template <class T>
-bool APathfindingGameModeBase::In(TArray<T> Arr, T Item)
-{
-	for (const auto obj : Arr)
-	{
-		if (obj == Item) return true;
-	}
-	return false;
-}
+	/**
+	 *	Returns a Node nearest to Origin from ActorsToCheck array.
+	 *	@param	Origin			World Location from which the distance is measured.
+	 *	@param	NodesToCheck	Array of Actors to examine and return Actor nearest to Origin.
+	 *	@return				Nearest Node.
+	 *	@remarks This function is copied and modified from UGameplayStatics.
+	 */
+	AMyNode* FindNearestNode(const FVector& Origin, const TArray<AMyNode*>& NodesToCheck);
+
+	/**
+	 *	Returns a Node nearest to Origin from ActorsToCheck array.
+	 *	@param	Origin			World Location from which the distance is measured.
+	 *	@param	NodesToCheck	Array of Actors to examine and return Actor nearest to Origin.
+	 *	@param  MaxNodes		The max number of returned Nodes in Result.
+	 *	@param	Result			Output array of the closest Nodes found.
+	 *	@return					If there were any results.
+	 *	@remarks				Guarantees that the contents of Result are not null.
+	 *	@remarks				This function is copied and modified from UGameplayStatics.
+	 */
+	bool FindNearestNodes(const FVector& Origin, const TArray<AMyNode*>& NodesToCheck, int32 MaxNodes, TArray<AMyNode*>& Result);
+
+	UFUNCTION(BlueprintCallable)
+	void ToggleNodeNames(bool Visible);
+
+	/**
+	 * @brief Swap between locked and free movement mode.
+	 * Changes which pawn the player controller possesses.
+	 */
+	UFUNCTION(BlueprintCallable)
+	void SwitchPawn();
+
+	void UpdateNodeNameRotations();
+};

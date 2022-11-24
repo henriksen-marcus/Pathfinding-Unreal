@@ -2,104 +2,80 @@
 
 
 #include "PathfindingGameModeBase.h"
-
-#include "Engine/TextRenderActor.h"
+#include "DrawDebugHelpers.h"
+#include "Camera/CameraComponent.h"
+#include "Components/TextRenderComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Public/MyNode.h"
+#include "Public/LockedPawn.h"
+#include "Public/PlayerPawn.h"
 #include "Engine/World.h"
-#include "Materials/MaterialExpressionChannelMaskParameter.h"
 #include "Public/Dijkstra2.h"
+#include "Kismet/KismetMathLibrary.h"
 
-APathfindingGameModeBase::APathfindingGameModeBase()
-{
-	NumberOfNodes = 20;
-	NodeConnectionRadius = 500.f;
-	NodeDist = 100.f;
-	DrawBounds = false;
-	ArrowSize = 1000.f;
-	NodeSize = 15.f;
-	MaxConnections = 3;
-	Alphabet = {"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"};
-}
+// todo: Make node spawning mode consistent
+// todo: Make animation?
+// todo: Make nodes spawn in one after one visibly
+// todo: Make UI
+
+APathfindingGameModeBase::APathfindingGameModeBase() {}
 
 void APathfindingGameModeBase::BeginPlay()
 {
+	// We know that the initial pawn is a LockedPawn because it is set in the game mode settings
+	PlayerCurrentPawn = GetWorld()->GetFirstPlayerController()->GetPawn();
+	LockedPawn = Cast<ALockedPawn>(PlayerCurrentPawn);
+	PlayerPawn = GetWorld()->SpawnActor<APlayerPawn>(FVector(), FRotator());
+	PlayerPawn->GameModeBase = this;
+	
 	if (NumberOfNodes < 2) NumberOfNodes = 2;
-	
-	SpawnNodes();
-	
-	/*Nodes.Add(GetWorld()->SpawnActor<AMyNode>(BP_MyNode, FVector(500, 0, 0), FRotator(0.f)));
-	Nodes.Add(GetWorld()->SpawnActor<AMyNode>(BP_MyNode, FVector(0, 0, 0), FRotator(0.f)));
-	Nodes.Add(GetWorld()->SpawnActor<AMyNode>(BP_MyNode, FVector(0, 500, 0), FRotator(0.f)));
-	Nodes.Add(GetWorld()->SpawnActor<AMyNode>(BP_MyNode, FVector(500, 500, 0), FRotator(0.f)));
-
-	Nodes[0]->InitNode("A");
-	Nodes[1]->InitNode("B");
-	Nodes[2]->InitNode("C");
-	Nodes[3]->InitNode("D");
-
-	DrawDebugSphere(GetWorld(), Nodes[0]->GetActorLocation(), 20, 8, FColor::Green, true, -1, 0, 2);
-	DrawDebugSphere(GetWorld(), Nodes[1]->GetActorLocation(), 20, 8, FColor::Blue, true);
-	DrawDebugSphere(GetWorld(), Nodes[2]->GetActorLocation(), 20, 8, FColor::Red, true, -1, 0, 2);
-	DrawDebugSphere(GetWorld(), Nodes[3]->GetActorLocation(), 20, 8, FColor::Blue, true);
-
-	
-	Nodes[0]->Connections.Add(Nodes[1]);
-	Nodes[1]->Connections.Add(Nodes[0]);
-	DrawLine(Nodes[0], Nodes[1]);
-	
-	Nodes[0]->Connections.Add(Nodes[3]);
-	Nodes[3]->Connections.Add(Nodes[0]);
-	DrawLine(Nodes[0], Nodes[3]);
-
-	
-	Nodes[1]->Connections.Add(Nodes[2]);
-	Nodes[2]->Connections.Add(Nodes[1]);
-	DrawLine(Nodes[1], Nodes[2]);
-
-	Nodes[2]->Connections.Add(Nodes[3]);
-	Nodes[3]->Connections.Add(Nodes[2]);
-	DrawLine(Nodes[2], Nodes[3]);
-
-	UpdateNodeOverlapSpheres();*/
-	
-	ADijkstra2* Dijkstra = Cast<ADijkstra2>(GetWorld()->SpawnActor(ADijkstra2::StaticClass()));
-	if (Dijkstra)
-	{
-		AMyNode* OriginNode = Nodes[0];
-		AMyNode* DestinationNode = Nodes[1];
-		
-		bool success = Dijkstra->Start(Nodes, OriginNode, DestinationNode);
-		//if (success) DrawPath(Dijkstra->ShortestPathTree);
-		//else UE_LOG(LogTemp, Warning, TEXT("Dijkstra failed."));
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Could not cast!"));
-	}
 }
 
-void APathfindingGameModeBase::SpawnNodes()
+void APathfindingGameModeBase::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	//DrawDebugSphere(GetWorld(), FVector(), 200, 32, FColor::Red);
+	if (bDrawBounds) DrawDebugBox(GetWorld(), FVector(), FVector(1000), FQuat(), FColor::White);
+	
+	for (const auto Node : Nodes)
+	{
+		// Draw node spheres
+		if (Node == OriginNode)
+			DrawDebugSphere(GetWorld(), Node->GetActorLocation(), NodeSize, 12, FColor::Green, false, -1, 0, 3);
+		else if (Node == DestinationNode)
+			DrawDebugSphere(GetWorld(), Node->GetActorLocation(), NodeSize, 12, FColor::Red, false, -1, 0, 3);
+		else if (bDrawIrrelevantNodes || !bIsPathGenerated)
+		{
+			DrawDebugSphere(GetWorld(), Node->GetActorLocation(), NodeSize, 12, FColor::White);
+			for (const auto Connection : Node->Connections)
+			{
+				DrawDebugLine(GetWorld(), Node->GetActorLocation(), Connection->GetActorLocation(), FColor::White);
+			}
+		}
+	}
+
+	UpdateNodeNameRotations();
+}
+
+void APathfindingGameModeBase::SpawnNodes(ESpawnMethod SpawnMethod)
 {
 	// Reset
-	if (Nodes.Num())
-	{
-		for (auto Node : Nodes)
-		{
-			Node->NameDisplay->Destroy();
-			Node->Destroy();
-		}
-		Nodes.Empty();
-		return;
-	}
+	DeleteNodes();
 	
-	const FBox Box = FBox(FVector3d(-1000), FVector3d(1000));
-	FVector RandPoint;
-
-	if (DrawBounds)
+	switch (SpawnMethod)
 	{
-		DrawDebugBox(GetWorld(), FVector(0), FVector(1000), FQuat(0), FColor::White, true);
+		case ESpawnMethod::Random: SpawnRandom(); break;
+		case ESpawnMethod::Grid: SpawnGrid(); break;
+		case ESpawnMethod::RandomGrid: SpawnRandomGrid(); break;
 	}
+	SetStartFinish();
+}
+
+void APathfindingGameModeBase::SpawnRandom()
+{
+	const FBox Box = FBox(FVector3d(-1000), FVector3d(1000));
+	FVector RandPoint, PrevLoc;
 
 	for (int32 i{}; i < NumberOfNodes; i++)
 	{
@@ -110,25 +86,18 @@ void APathfindingGameModeBase::SpawnNodes()
 		{
 			RandPoint = FMath::RandPointInBox(Box);
 		}
-		while (FVector::Dist(PrevLoc, RandPoint) < NodeDist && loops++ < 50);
+		while (FVector::Dist(PrevLoc, RandPoint) < NodeDist && loops++ < 10);
 		
 		AMyNode* NewNode = GetWorld()->SpawnActor<AMyNode>(BP_MyNode, RandPoint, FRotator());
-		NewNode->Collision->SetSphereRadius(NodeConnectionRadius);
-		FString Name = (i > Alphabet.Num() - 1) ? Alphabet[i - 26] + "1" : Alphabet[i];
-		NewNode->InitNode(Name);
-		
-		switch (i)
+
+		int32 Index{}, TempIndex{i};
+		while (TempIndex - Alphabet.Num() >= 0)
 		{
-		case 0: // Starting node
-			DrawDebugSphere(GetWorld(), RandPoint, NodeSize, 12, FColor::Green, true, -1, 0, 2);
-			break;
-		case 1: // Destination node
-			DrawDebugSphere(GetWorld(), RandPoint, NodeSize, 12, FColor::Red, true, -1, 0, 2);
-			break;
-		default:
-			DrawDebugSphere(GetWorld(), RandPoint, NodeSize, 12, FColor::White, true);
-			break;
+			Index += Alphabet.Num();
+			TempIndex -= Alphabet.Num();
 		}
+		FString Name = Alphabet[i - Index] + ((Index / Alphabet.Num() > 0) ? FString::FromInt(Index / Alphabet.Num()) : TEXT(""));
+		NewNode->InitNode(Name);
 		
 		PrevLoc = RandPoint;
 		Nodes.Add(NewNode);
@@ -136,47 +105,69 @@ void APathfindingGameModeBase::SpawnNodes()
 	SetupNodeConnections();
 }
 
+void APathfindingGameModeBase::SpawnGrid()
+{
+}
+
+void APathfindingGameModeBase::SpawnRandomGrid()
+{
+}
+
+void APathfindingGameModeBase::DeleteNodes()
+{
+	for (auto Node : Nodes)
+	{
+		Node->Destroy();
+	}
+	// Clear nullptr references
+	Nodes.Empty();
+}
+
+void APathfindingGameModeBase::Pathfind(EAlgorithm Algorithm)
+{
+	UE_LOG(LogTemp, Warning, TEXT("Algorithm chosen: %s"), *UEnum::GetValueAsString(Algorithm));
+	switch (Algorithm)
+	{
+	case EAlgorithm::Dijkstra:
+		{
+			
+			ADijkstra2* Dijkstra = Cast<ADijkstra2>(GetWorld()->SpawnActor(ADijkstra2::StaticClass()));
+			if (Dijkstra)
+			{
+				bool success = Dijkstra->Start(Nodes, OriginNode, DestinationNode);
+				if (success) DrawPath(Dijkstra->ShortestPathTree);
+				else UE_LOG(LogTemp, Warning, TEXT("Dijkstra failed."));
+			}
+			else { UE_LOG(LogTemp, Warning, TEXT("Could not cast!")); }
+		}
+		break;
+	case EAlgorithm::AStar:
+		break;
+	case EAlgorithm::TSM:
+		break;
+	}
+}
+
 void APathfindingGameModeBase::SetupNodeConnections()
 {
-	for (const auto node : Nodes)
+	for (const auto Node : Nodes)
 	{
-		TArray<FOverlapResult> Result;
+		auto NodesToCheck(Nodes);
+		NodesToCheck.Remove(Node); // Remove self so we don't make a connection to self
 
-		// Check if we overlap with any nodes within the
-		// NodeConnectionRadius. NOTE: This specific function
-		// does NOT return true with overlaps! Only blocking hits!
-		GetWorld()->OverlapMultiByProfile(
-			Result,
-			node->GetActorLocation(),
-			FQuat(),
-			FName("NodeOverlap"),
-			FCollisionShape::MakeSphere(1000),
-			FCollisionQueryParams::DefaultQueryParam);
+		TArray<AMyNode*> Result;
+		if (!FindNearestNodes(Node->GetActorLocation(), NodesToCheck, NumberOfNodes, Result)) continue;
+		
+		const int32 MaxLoops = FMath::Min(Result.Num(), MaxConnections);
+		int32 ConnectionsMade = 0;
 
-		Result.RemoveAt(0);
-
-		// If there were any overlaps
-		if (Result.Num())
-		{
-			const int32 MaxLoops = FMath::Min(Result.Num(), MaxConnections);
-			int32 ConnectionsMade = 0;
-			for (int32 i{}; i < Result.Num(); i++)
+		// Iterate through closest nodes
+		for (int32 i{}; i < Result.Num() && ConnectionsMade < MaxLoops; i++)
+		{	// Check if other node has available connection slots
+			if (Result[i]->Connections.Num() < MaxConnections)
 			{
-				// We might have collided with something else, in which case the cast will fail
-				if (AMyNode* OverlappedNode = Cast<AMyNode>(Result[i].GetActor()))
-				{
-					// Skip self
-					/*if (OverlappedNode == node)
-					{
-						continue;
-					}*/
-					if (ConnectionsMade >= MaxLoops) break;
-					if (OverlappedNode->Connections.Num() < MaxConnections)
-					{
-						MakeConnection(node, OverlappedNode);
-						ConnectionsMade++;
-					}
-				}
+				MakeConnection(Node, Result[i]);
+				ConnectionsMade++;
 			}
 		}
 	}
@@ -186,12 +177,44 @@ void APathfindingGameModeBase::MakeConnection(AMyNode* n1, AMyNode* n2)
 {
 	if (n1->Connections.Find(n2) == INDEX_NONE) n1->Connections.Add(n2);
 	if (n2->Connections.Find(n1) == INDEX_NONE) n2->Connections.Add(n1);
-	DrawDebugLine(GetWorld(), n1->GetActorLocation(), n2->GetActorLocation(), FColor::White, true);
 }
 
-void APathfindingGameModeBase::DrawPath(TArray<AMyNode*> SPT)
+void APathfindingGameModeBase::SetStartFinish()
 {
-	UE_LOG(LogTemp, Warning, TEXT("DrawPath()"));
+	// Check nodes from the corner of the bounding box
+	OriginNode = FindNearestNode(FVector(1000.f), Nodes);
+	if (!OriginNode)
+	{	// Fallback
+		OriginNode = Nodes[0];
+		UE_LOG(LogTemp, Warning, TEXT("Was not able to set smart origin node."));
+	}
+	
+	DestinationNode = FindNearestNode(FVector(-1000.f), Nodes);
+	if (!DestinationNode)
+	{	// Fallback
+		if (DestinationNode == OriginNode)
+		{
+			DestinationNode = Nodes[1];
+			UE_LOG(LogTemp, Warning, TEXT("Was not able to set smart destination node."));	
+		}
+	}
+}
+
+void APathfindingGameModeBase::DrawNodes()
+{
+	for (const auto Node : Nodes)
+	{
+		if (Node == OriginNode)
+			DrawDebugSphere(GetWorld(), Node->GetActorLocation(), NodeSize, 12, FColor::Green, true, -1, 0, 3);
+		else if (Node == DestinationNode)
+			DrawDebugSphere(GetWorld(), Node->GetActorLocation(), NodeSize, 12, FColor::Red, true, -1, 0, 3);
+		else
+			DrawDebugSphere(GetWorld(), Node->GetActorLocation(), NodeSize, 12, FColor::White, true);
+	}
+}
+
+void APathfindingGameModeBase::DrawPath(TArray<AMyNode*>& SPT)
+{
 	for (int32 i{}; i < SPT.Num(); i++)
 	{
 		if (SPT.Num() >= i + 2)
@@ -203,3 +226,126 @@ void APathfindingGameModeBase::DrawPath(TArray<AMyNode*> SPT)
 		}
 	}
 }
+
+TArray<FOverlapResult> APathfindingGameModeBase::SphereOverlap(const FVector& Location, float Radius)
+{
+	TArray<FOverlapResult> Result;
+	// NOTE: This specific function
+	// does NOT return true with overlaps! Only blocking hits!
+	GetWorld()->OverlapMultiByProfile(
+			Result,
+			Location,
+			FQuat(),
+			FName("NodeOverlap"),
+			FCollisionShape::MakeSphere(Radius),
+			FCollisionQueryParams::DefaultQueryParam);
+	return Result;
+}
+
+AMyNode* APathfindingGameModeBase::FindNearestNode(const FVector& Origin, const TArray<AMyNode*>& NodesToCheck)
+{
+	AMyNode* NearestNode = nullptr;
+	float DistanceFromNearestNode = TNumericLimits<float>::Max();
+
+	for (AMyNode* NodeToCheck : NodesToCheck)
+	{
+		if (NodeToCheck)
+		{
+			const float DistanceFromActorToCheck = (Origin - NodeToCheck->GetActorLocation()).SizeSquared();
+			if (DistanceFromActorToCheck < DistanceFromNearestNode)
+			{
+				NearestNode = NodeToCheck;
+				DistanceFromNearestNode = DistanceFromActorToCheck;
+			}
+		}
+	}
+	return NearestNode;
+}
+
+bool APathfindingGameModeBase::FindNearestNodes(const FVector& Origin, const TArray<AMyNode*>& NodesToCheck, int32 MaxNodes,
+	TArray<AMyNode*>& Result)
+{
+	// Use copy constructor, we need a modifiable array
+	TArray NodesToCheckCopy(NodesToCheck);
+
+	// Make sure we check through everything
+	while(NodesToCheckCopy.Num())
+	{
+		AMyNode* NearestNode = nullptr;
+		float DistanceFromNearestNode = TNumericLimits<float>::Max();
+
+		for (AMyNode* NodeToCheck : NodesToCheckCopy)
+		{
+			if (NodeToCheck)
+			{
+				const float DistanceFromActorToCheck = (Origin - NodeToCheck->GetActorLocation()).SizeSquared();
+				if (DistanceFromActorToCheck < DistanceFromNearestNode)
+				{
+					NearestNode = NodeToCheck;
+					DistanceFromNearestNode = DistanceFromActorToCheck;
+				}
+			}
+		}
+		if (NearestNode) Result.Add(NearestNode);
+		if (Result.Num() >= MaxConnections) return bool(Result.Num());
+		NodesToCheckCopy.Remove(NearestNode);
+	}
+	return bool(Result.Num());
+}
+
+void APathfindingGameModeBase::ToggleNodeNames(bool Visible)
+{
+	Visible = !Visible;
+	for (const auto Node : Nodes)
+	{
+		Node->NameDisplay->ToggleVisibility();
+	}
+}
+
+void APathfindingGameModeBase::SwitchPawn()
+{
+	if (PlayerCurrentPawn == LockedPawn)
+	{
+		// Make a smooth transition
+		PlayerPawn->SetActorRotation(LockedPawn->Camera->GetComponentRotation());
+		PlayerPawn->SetActorLocation(LockedPawn->Camera->GetComponentLocation());
+		GetWorld()->GetFirstPlayerController()->Possess(PlayerPawn);
+		GetWorld()->GetFirstPlayerController()->SetInputMode(FInputModeGameOnly());
+		GetWorld()->GetFirstPlayerController()->SetShowMouseCursor(false);
+		PlayerCurrentPawn = PlayerPawn;
+	}
+	else
+	{
+		GetWorld()->GetFirstPlayerController()->Possess(LockedPawn);
+		GetWorld()->GetFirstPlayerController()->SetInputMode(FInputModeGameAndUI());
+		GetWorld()->GetFirstPlayerController()->SetShowMouseCursor(true);
+		PlayerCurrentPawn = LockedPawn;
+	}
+}
+
+void APathfindingGameModeBase::UpdateNodeNameRotations()
+{
+	FVector PlayerLocation;
+	if (PlayerCurrentPawn == LockedPawn)
+	{
+		PlayerLocation = LockedPawn->Camera->GetComponentLocation();
+	}
+	else
+	{
+		PlayerLocation = PlayerPawn->GetActorLocation();
+	}
+	
+	for (const auto Node : Nodes)
+	{
+		Node->NameDisplay->SetWorldRotation(
+		UKismetMathLibrary::FindLookAtRotation(
+			Node->NameDisplay->GetComponentLocation(),
+			PlayerLocation
+			));
+		
+		Node->NameDisplay->SetRelativeScale3D(
+			FVector(FMath::Lerp(0.3f, 5.f,
+				FVector::Dist(Node->NameDisplay->GetComponentLocation(), PlayerLocation) / 5000)));
+	}
+}
+

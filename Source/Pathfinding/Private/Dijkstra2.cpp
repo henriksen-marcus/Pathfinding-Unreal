@@ -28,6 +28,7 @@ bool ADijkstra2::Start(const TArray<AMyNode*> Nodes, AMyNode* Origin, AMyNode* D
 	CurrentNode->bVisited = true;
 	CurrentNode->CurrentCost = 0;
 	CurrentNode->WaitTime = 0;
+	OriginNode = Origin;
 	DestinationNode = Destination;
 
 	// Add each node to the priority queue
@@ -106,9 +107,12 @@ bool ADijkstra2::Start(const TArray<AMyNode*> Nodes, AMyNode* Origin, AMyNode* D
 
 		if (!PriorityQueue.Num())
 		{
-			GenerateTree();
-			UE_LOG(LogTemp, Warning, TEXT("Dijkstra succeeded."));
-			return true;
+			if (GenerateTree())
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Dijkstra succeeded."));
+				return true;
+			}
+			return false;
 		}
 		PreviousNode = CurrentNode;
 		CurrentNode = PriorityQueue[0];
@@ -135,7 +139,7 @@ void ADijkstra2::UpdatePriority(AMyNode* Node)
 	PriorityQueue.Add(Node);
 }
 
-void ADijkstra2::GenerateTree()
+bool ADijkstra2::GenerateTree()
 {
 	UE_LOG(LogTemp, Warning, TEXT("GenerateTree(): Shortest path:"));
 
@@ -147,9 +151,11 @@ void ADijkstra2::GenerateTree()
 		ShortestPathTree.Add(Previous);
 		Previous = Previous->PreviousNode;
 	}
+	// Check if we actually found a complete path
+	if (ShortestPathTree.Find(OriginNode) == INDEX_NONE) return false;
 
 	Algo::Reverse(ShortestPathTree);
-	
+	/*
 	for (int32 i{}; i < ShortestPathTree.Num(); i++)
 	{
 		if (ShortestPathTree.Num() >= i + 2)
@@ -159,11 +165,12 @@ void ADijkstra2::GenerateTree()
 			DrawDebugDirectionalArrow(GetWorld(), Loc1, Loc2, 1000, FColor::Red, true, -1, 0, 5);
 		}
 	}
-
+	*/
 	for (const auto n : ShortestPathTree)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("		%s"), *n->Name);
 	}
+	return true;
 }
 
 float ADijkstra2::Dist(const AActor* n1, const AActor* n2)
@@ -173,6 +180,7 @@ float ADijkstra2::Dist(const AActor* n1, const AActor* n2)
 
 void ADijkstra2::PrintQ()
 {
+	return;
 	UE_LOG(LogTemp, Warning, TEXT("Priority Queue:"));
 	for(const auto Node : PriorityQueue)
 	{

@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Components/SphereComponent.h"
 #include "GameFramework/Actor.h"
 #include "MyNode.generated.h"
 
@@ -25,7 +24,14 @@ public:
 
 	// Collision component, lets nodes overlap and detect each other
 	UPROPERTY(EditAnywhere, Category = "Node")
-	USphereComponent* Collision;
+	class USphereComponent* Collision;
+
+	// Rendered text to display the name of the node
+	UPROPERTY()
+	class UTextRenderComponent* NameDisplay;
+
+	UPROPERTY(EditAnywhere)
+	UMaterialInterface* TextMaterial;
 
 	// Time to finish, adds to the cost
 	UPROPERTY(VisibleAnywhere, Category = "Node")
@@ -48,14 +54,5 @@ public:
 	// The unique name of the node, should be a char like "A"
 	FString Name;
 
-	// Rendered text to display the name of the node
-	UPROPERTY()
-	class ATextRenderActor* NameDisplay;
-
-	UPROPERTY(EditAnywhere)
-	UMaterialInterface* TextMaterial;
-
-	void InitNode(FString _Name);
-
-	//void GetCost();
+	void InitNode(const FString& _Name);
 };

@@ -39,6 +39,9 @@ public:
 	TArray<AMyNode*> PriorityQueue;
 
 	UPROPERTY()
+	AMyNode* OriginNode;
+
+	UPROPERTY()
 	AMyNode* CurrentNode;
 
 	UPROPERTY()
@@ -67,7 +70,7 @@ public:
 	 * the origin node. Adds the path to ShortestPathTree in the
 	 * correct order.
 	 */
-	void GenerateTree();
+	bool GenerateTree();
 
 	/**
 	 * @param n1 The first node
