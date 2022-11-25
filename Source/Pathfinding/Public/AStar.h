@@ -82,4 +82,10 @@ public:
 	*/
 	void PrintQ();
 
+	/**
+	 * @brief Handle extra actions to be done before returning.
+	 * @param Nodes The array of nodes we have processed.
+	 * @return If the algorithm result is valid.
+	 */
+	bool HandleFinish(const TArray<AMyNode*>& Nodes);
 };

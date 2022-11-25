@@ -114,13 +114,17 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Node|Runtime")
 	bool bShowNodeNames = true;
 
+	// Whether to draw nodes that are not part of the path
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Node|Runtime")
+	bool bDrawIrrelevantNodes = true;
+
+	// If we should add a random wait time to each node, increasing the complexity
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Node|Runtime")
+	bool bUseWaitTime = true;
+
 	// Whether to draw the bounds that the nodes spawn in
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Runtime")
 	bool bDrawBounds = true;
-
-	// Whether to draw nodes that are not part of the path
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Runtime")
-	bool bDrawIrrelevantNodes = true;
 	
 
 	//---------------- Functions -------------------//
@@ -136,11 +140,20 @@ public:
 	void SpawnGrid();
 	void SpawnRandomGrid();
 
+	FString GenerateName(int32 TempIndex);
+
 	/**
 	 * @brief Deletes all the nodes in the world.
 	 */
 	UFUNCTION(BlueprintCallable)
 	void DeleteNodes();
+
+	/**
+	 * @brief Resets the variables of each node, used when
+	 * running different algorithms multiple times on the
+	 * same set of nodes.
+	 */
+	void ResetNodes();
 
 	/**
 	 * @brief The branch function that runs the individual

@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// Copyright (C) 2022 by Marcus Henriksen
 
 #pragma once
 
@@ -57,6 +57,8 @@ public:
 
 	// The unique name of the node, should be a char like "A"
 	FString Name;
+
+	TArray<float> TimeToFinishArr = {5, 8, 10, 12, 15, 18, 22, 26};
 
 	
 	void InitNode(const FString& _Name);

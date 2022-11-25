@@ -7,20 +7,17 @@
 
 AAStar::AAStar()
 {
-	PrimaryActorTick.bCanEverTick = true;
-
+	PrimaryActorTick.bCanEverTick = false;
 }
 
 void AAStar::BeginPlay()
 {
 	Super::BeginPlay();
-	
 }
 
 void AAStar::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
 }
 
 bool AAStar::Start(const TArray<AMyNode*> Nodes, AMyNode* Origin, AMyNode* Destination)
@@ -38,6 +35,7 @@ bool AAStar::Start(const TArray<AMyNode*> Nodes, AMyNode* Origin, AMyNode* Desti
 		//if (Node != Destination) PriorityQueue.Add(Node);
 	}
 
+	PriorityQueue.Empty();
 	CurrentNode = Origin;
 	CurrentNode->bVisited = true;
 	CurrentNode->CurrentCost = 0;
@@ -73,6 +71,7 @@ bool AAStar::Start(const TArray<AMyNode*> Nodes, AMyNode* Origin, AMyNode* Desti
 			UE_LOG(LogTemp, Warning, TEXT("		Node visited: %s"), NextNode->bVisited ? TEXT("true") : TEXT("false"));
 
 			// Skip check if node already has a shorter path!
+			// Here we don't check heuristic.
 			if (NextNode->bVisited && NextNode->CurrentCost <= TotalCost)
 			{
 				UE_LOG(LogTemp, Warning, TEXT("		Skipped updating %s, shorter path already exists"), *NextNode->Name);
@@ -84,6 +83,9 @@ bool AAStar::Start(const TArray<AMyNode*> Nodes, AMyNode* Origin, AMyNode* Desti
 			NextNode->PreviousNode = CurrentNode; // Update parent
 			NextNode->bVisited = true;
 
+			// Exit algorithm
+			if (NextNode == Destination) return HandleFinish(Nodes);
+
 			// Update the node's position/Add it to the priority queue, unless it's the destination node
 			if (NextNode != Destination) UpdatePriority(NextNode);
 		}
@@ -93,31 +95,8 @@ bool AAStar::Start(const TArray<AMyNode*> Nodes, AMyNode* Origin, AMyNode* Desti
 		PriorityQueue.Remove(CurrentNode);
 		PrintQ();
 
-		/*bool AreWeDone = true;
-		for (const auto Node : Nodes)
-		{
-			if (Node->CurrentCost < CurrentNode->CurrentCost)
-			{
-				AreWeDone = false;
-				break;
-			}
-		}
-		
-		if (AreWeDone)
-		{
-			GenerateTree();
-			return true;
-		}*/
-
-		if (!PriorityQueue.Num())
-		{
-			if (GenerateTree())
-			{
-				UE_LOG(LogTemp, Warning, TEXT("AStar succeeded."));
-				return true;
-			}
-			return false;
-		}
+		// Checked everything but no path
+		if (PriorityQueue.IsEmpty()) break;
 		
 		// Step 2: Choose next node
 		// We always choose the node at the top of the priority queue,
@@ -148,13 +127,13 @@ void AAStar::UpdatePriority(AMyNode* Node)
 		}
 	}
 	// If the node had a higher cost than all other nodes
-	UE_LOG(LogTemp, Warning, TEXT("		UpdatePriority(): Updated %s in the Priority Queue."), *Node->Name);
+	UE_LOG(LogTemp, Warning, TEXT("		UpdatePriority(): Added %s to the end of the Priority Queue."), *Node->Name);
 	PriorityQueue.Add(Node);
 }
 
 bool AAStar::GenerateTree()
 {
-	UE_LOG(LogTemp, Warning, TEXT("GenerateTree(): Shortest path:"));
+	UE_LOG(LogTemp, Warning, TEXT("GenerateTree()"));
 
 	ShortestPathTree.Empty();
 	ShortestPathTree.Add(DestinationNode);
@@ -179,10 +158,14 @@ bool AAStar::GenerateTree()
 		}
 	}
 	*/
-	for (const auto n : ShortestPathTree)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("		%s"), *n->Name);
-	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("			Shortest path:"));
+	
+	FString STP = "";
+	for (const auto n : ShortestPathTree) { STP += n->Name + " "; }
+	
+	UE_LOG(LogTemp, Warning, TEXT("			%s"), *STP);
+	
 	return true;
 }
 
@@ -194,9 +177,25 @@ float AAStar::Dist(const AActor* n1, const AActor* n2)
 void AAStar::PrintQ()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Priority Queue:"));
-	for(const auto Node : PriorityQueue)
+	
+	FString Q = "";
+	for (const auto n : PriorityQueue) { Q += n->Name + " "; }
+	
+	UE_LOG(LogTemp, Warning, TEXT("			%s"), *Q);
+}
+
+bool AAStar::HandleFinish(const TArray<AMyNode*>& Nodes)
+{	
+	if (GenerateTree())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("		%s"), *Node->Name);
+		UE_LOG(LogTemp, Warning, TEXT("AStar succeeded."));
+		
+		int32 NodesVisited = 0;
+		for (const auto Node : Nodes) { if (Node->bVisited) NodesVisited++; }
+		
+		UE_LOG(LogTemp, Warning, TEXT("Number of nodes visited: %d"), NodesVisited);
+		return true;
 	}
+	return false;	
 }
 

@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// Copyright (C) 2022 by Marcus Henriksen
 
 
 #include "MyNode.h"
@@ -30,8 +30,9 @@ AMyNode::AMyNode()
 void AMyNode::BeginPlay()
 {
 	Super::BeginPlay();
-	// We need to multiply by 1000 to make it have some significance
-	WaitTime = FMath::RandRange(1, 5) * 1000.f;
+	
+	// We need to multiply it have some significance
+	WaitTime = TimeToFinishArr[FMath::RandRange(0, TimeToFinishArr.Num() - 1)] * 500.f;
 }
 
 void AMyNode::Tick(float DeltaTime)
@@ -42,7 +43,8 @@ void AMyNode::Tick(float DeltaTime)
 void AMyNode::InitNode(const FString& _Name)
 {
 	Name = _Name;
-	FString Num = FString::SanitizeFloat(WaitTime, 0);
+	;
+	FString Num = FString::SanitizeFloat(FMath::TruncToFloat(WaitTime/500.f), 0);
 	FString NewName = Name + ": " + Num;
 	if (NameDisplay) NameDisplay->SetText(FText::FromString(NewName));
 }

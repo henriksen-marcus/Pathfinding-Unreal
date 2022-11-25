@@ -14,10 +14,6 @@
 #include "Public/AStar.h"
 #include "Kismet/KismetMathLibrary.h"
 
-// todo: Make node spawning mode consistent
-// todo: Make animation?
-// todo: Make nodes spawn in one after one visibly
-// todo: Make UI
 
 APathfindingGameModeBase::APathfindingGameModeBase() {}
 
@@ -37,9 +33,8 @@ void APathfindingGameModeBase::BeginPlay()
 void APathfindingGameModeBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	//DrawDebugSphere(GetWorld(), FVector(), 200, 32, FColor::Red);
-	if (bDrawBounds) DrawDebugBox(GetWorld(), FVector(), FVector(1000), FQuat(), FColor::White, false, -1, 0, 4.f);
+	
+	if (bDrawBounds) DrawDebugBox(GetWorld(), FVector(), FVector(1000), FQuat(), FColor::White, false, -1, 0, 7.f);
 	
 	for (const auto Node : Nodes)
 	{
@@ -72,7 +67,19 @@ void APathfindingGameModeBase::SpawnNodes(ESpawnMethod SpawnMethod)
 		case ESpawnMethod::Grid: SpawnGrid(); break;
 		case ESpawnMethod::RandomGrid: SpawnRandomGrid(); break;
 	}
+	
 	SetStartFinish();
+
+	if (!bUseWaitTime)
+	{
+		for (const auto Node : Nodes)
+		{
+			Node->NameDisplay->SetText(FText::FromString(Node->Name));
+			Node->WaitTime = 0;
+		}
+	}
+
+	if (!bShowNodeNames) ToggleNodeNames(false);
 }
 
 void APathfindingGameModeBase::SpawnRandom()
@@ -92,15 +99,8 @@ void APathfindingGameModeBase::SpawnRandom()
 		while (FVector::Dist(PrevLoc, RandPoint) < NodeDist && loops++ < 10);
 		
 		AMyNode* NewNode = GetWorld()->SpawnActor<AMyNode>(BP_MyNode, RandPoint, FRotator());
-
-		int32 Index{}, TempIndex{i};
-		while (TempIndex - Alphabet.Num() >= 0)
-		{
-			Index += Alphabet.Num();
-			TempIndex -= Alphabet.Num();
-		}
-		FString Name = Alphabet[i - Index] + ((Index / Alphabet.Num() > 0) ? FString::FromInt(Index / Alphabet.Num()) : TEXT(""));
-		NewNode->InitNode(Name);
+		
+		NewNode->InitNode(GenerateName(i));
 		
 		PrevLoc = RandPoint;
 		Nodes.Add(NewNode);
@@ -110,10 +110,39 @@ void APathfindingGameModeBase::SpawnRandom()
 
 void APathfindingGameModeBase::SpawnGrid()
 {
+	int Loops = FMath::Pow(NumberOfNodes, 1.f / 3.f);
+	const float DistanceBetweenNodes = 2000 / Loops;
+	float Offset = -1000.f;
+	int32 TotIndex = 0;
+	
+	for (int32 x{}; x <= Loops; x++)
+	{
+		for (int32 y{}; y <= Loops; y++)
+		{
+			for (int32 z{}; z <= Loops; z++)
+			{
+				FVector Pos = FVector(DistanceBetweenNodes * x + Offset, DistanceBetweenNodes * y + Offset, DistanceBetweenNodes * z + Offset);
+				AMyNode* NewNode = GetWorld()->SpawnActor<AMyNode>(BP_MyNode, Pos, FRotator());
+				NewNode->InitNode(GenerateName(TotIndex));
+				Nodes.Add(NewNode);
+				TotIndex++;
+			}
+		}
+	}
+
+	SetupNodeConnections();
+	
+	UE_LOG(LogTemp, Warning, TEXT("NumNodes: %d"), Nodes.Num());
 }
 
 void APathfindingGameModeBase::SpawnRandomGrid()
 {
+}
+
+FString APathfindingGameModeBase::GenerateName(int32 i)
+{
+	const int32 Number = i / Alphabet.Num();
+	return Number ? Alphabet[i - Alphabet.Num() * Number] + FString::FromInt(Number) : Alphabet[i];
 }
 
 void APathfindingGameModeBase::DeleteNodes()
@@ -128,9 +157,24 @@ void APathfindingGameModeBase::DeleteNodes()
 	bIsPathGenerated = false;
 }
 
+void APathfindingGameModeBase::ResetNodes()
+{
+	for (auto Node : Nodes)
+	{
+		Node->PreviousNode = nullptr;
+		Node->bVisited = false;
+		Node->Heuristic = FLT_MAX;
+		Node->CurrentCost = FLT_MAX;
+	}
+}
+
 void APathfindingGameModeBase::Pathfind(EAlgorithm Algorithm)
 {
 	UE_LOG(LogTemp, Warning, TEXT("Algorithm chosen: %s"), *UEnum::GetValueAsString(Algorithm));
+
+	// In case we want to run another algorithm on the same node set
+	ResetNodes();
+	
 	switch (Algorithm)
 	{
 	case EAlgorithm::Dijkstra:
@@ -201,6 +245,8 @@ void APathfindingGameModeBase::MakeConnection(AMyNode* n1, AMyNode* n2)
 
 void APathfindingGameModeBase::SetStartFinish()
 {
+	if (Nodes.IsEmpty()) return;
+	
 	// Check nodes from the corner of the bounding box
 	OriginNode = FindNearestNode(FVector(1000.f), Nodes);
 	if (!OriginNode)
@@ -219,8 +265,8 @@ void APathfindingGameModeBase::SetStartFinish()
 		}
 	}
 
-	OriginNode->NameDisplay->SetText(FText::FromString(OriginNode->Name));
-	DestinationNode->NameDisplay->SetText(FText::FromString(DestinationNode->Name));
+	OriginNode->NameDisplay->SetText(FText::FromString(TEXT("Start")));
+	DestinationNode->InitNode(TEXT("End"));
 }
 
 void APathfindingGameModeBase::DrawNodes()
@@ -318,11 +364,11 @@ bool APathfindingGameModeBase::FindNearestNodes(const FVector& Origin, const TAr
 
 void APathfindingGameModeBase::ToggleNodeNames(bool Visible)
 {
-	Visible = !Visible;
 	for (const auto Node : Nodes)
 	{
 		Node->NameDisplay->ToggleVisibility();
 	}
+	bShowNodeNames = !bShowNodeNames;
 }
 
 void APathfindingGameModeBase::SwitchPawn()

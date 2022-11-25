@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// Copyright (C) 2022 by Marcus Henriksen
 
 #pragma once
 
@@ -85,6 +85,13 @@ public:
 	 * @brief Logs each item currently in the Priority Queue
 	 */
 	void PrintQ();
+
+	/**
+	 * @brief Handle extra actions to be done before returning.
+	 * @param Nodes The array of nodes we have processed.
+	 * @return If the algorithm result is valid.
+	 */
+	bool HandleFinish(const TArray<AMyNode*>& Nodes);
 };
 
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2022 by Marcus Henriksen\nPublished under BSL 1.0
+// Copyright (C) 2022 by Marcus Henriksen
 
 #pragma once
 
