@@ -23,7 +23,7 @@ AMyNode::AMyNode()
 	
 	WaitTime = 0.f;
 	bVisited = false;
-	CurrentCost = 90000000.f;
+	CurrentCost = FLT_MAX;
 	Name = "";
 }
 

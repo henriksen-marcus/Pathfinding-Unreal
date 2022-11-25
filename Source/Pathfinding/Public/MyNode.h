@@ -44,8 +44,12 @@ public:
 	UPROPERTY(VisibleAnywhere, Category = "Node")
 	TArray<AMyNode*> Connections;
 
-	// The current lowest cost we have found from origin to this node in the algorithm
+	// The current lowest cost we have found from origin to this node in the algorithm.
+	// NOT heuristic.
 	float CurrentCost;
+
+	// Used in A* algorithm
+	float Heuristic = FLT_MAX;
 
 	// Ptr to the previous node according to the lowest cost we have found, aka "Path via"
 	UPROPERTY()
@@ -54,5 +58,6 @@ public:
 	// The unique name of the node, should be a char like "A"
 	FString Name;
 
+	
 	void InitNode(const FString& _Name);
 };

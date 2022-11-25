@@ -11,6 +11,7 @@
 #include "Public/PlayerPawn.h"
 #include "Engine/World.h"
 #include "Public/Dijkstra2.h"
+#include "Public/AStar.h"
 #include "Kismet/KismetMathLibrary.h"
 
 // todo: Make node spawning mode consistent
@@ -144,10 +145,23 @@ void APathfindingGameModeBase::Pathfind(EAlgorithm Algorithm)
 				}
 				else UE_LOG(LogTemp, Warning, TEXT("Dijkstra failed."));
 			}
-			else { UE_LOG(LogTemp, Warning, TEXT("Could not cast!")); }
+			else { UE_LOG(LogTemp, Warning, TEXT("Could not cast Dijkstra!")); }
 		}
 		break;
 	case EAlgorithm::AStar:
+		{
+			if (auto* AStar = Cast<AAStar>(GetWorld()->SpawnActor(AAStar::StaticClass())))
+			{
+				// If the AStar algorithm succeeded, enable a variable used in tick to draw the shortest path
+				if (AStar->Start(Nodes, OriginNode, DestinationNode))
+				{
+					CurrentPathTree = AStar->ShortestPathTree;
+					bIsPathGenerated = true;
+				}
+				else UE_LOG(LogTemp, Warning, TEXT("AStar failed."));
+			}
+			else { UE_LOG(LogTemp, Warning, TEXT("Could not cast AStar!")); }
+		}
 		break;
 	case EAlgorithm::TSM:
 		break;
@@ -204,6 +218,9 @@ void APathfindingGameModeBase::SetStartFinish()
 			UE_LOG(LogTemp, Warning, TEXT("Was not able to set smart destination node."));	
 		}
 	}
+
+	OriginNode->NameDisplay->SetText(FText::FromString(OriginNode->Name));
+	DestinationNode->NameDisplay->SetText(FText::FromString(DestinationNode->Name));
 }
 
 void APathfindingGameModeBase::DrawNodes()
