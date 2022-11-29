@@ -33,7 +33,7 @@ void APlayerPawn::BeginPlay()
 void APlayerPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	
+	if (!FMath::IsNearlyZero(GetMovementComponent()->Velocity.Size())) OnMoveDelegate.Broadcast();
 }
 
 void APlayerPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)

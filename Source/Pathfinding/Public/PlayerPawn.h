@@ -6,8 +6,11 @@
 #include "GameFramework/DefaultPawn.h"
 #include "PlayerPawn.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMoveSignaturePP);
+
 /**
- * 
+ * Derived from UE's default pawn. Able to float
+ * around in the world freely.
  */
 UCLASS()
 class PATHFINDING_API APlayerPawn : public ADefaultPawn
@@ -15,16 +18,13 @@ class PATHFINDING_API APlayerPawn : public ADefaultPawn
 	GENERATED_BODY()
 
 	APlayerPawn();
-
 protected:
 	virtual void BeginPlay() override;
-
 public:	
-	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-
-	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	
+	FOnMoveSignaturePP OnMoveDelegate;
 
 	UPROPERTY()
 	class UCameraComponent* Camera;
@@ -33,7 +33,6 @@ public:
 	class APathfindingGameModeBase* GameModeBase;
 
 	void SwitchPawn();
-	
 };
 
 

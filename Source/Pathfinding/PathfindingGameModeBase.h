@@ -8,6 +8,10 @@
 #include "PathfindingGameModeBase.generated.h"
 
 class AMyNode;
+class ADijkstra2;
+class AAStar;
+class APlayerPawn;
+class ALockedPawn;
 
 UENUM(BlueprintType)
 enum class EAlgorithm : uint8
@@ -32,6 +36,8 @@ struct FNodeInfo
 	FNodeInfo(AMyNode* _Node, float _Dist) : Node(_Node), Dist(_Dist) {}
 };
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FKOnError, FString, Message);
+
 /**
  * The class that controls and keeps the top level functions and
  * variables to use in all the pathfinding algorithms.
@@ -46,17 +52,26 @@ class PATHFINDING_API APathfindingGameModeBase : public AGameModeBase
 	virtual void Tick(float DeltaTime) override;
 
 public:
+	UPROPERTY(BlueprintAssignable)
+	FKOnError OnError;
+
+	// Choose the BP class based on MyNode in this slot.
 	UPROPERTY(EditAnywhere, Category = "Node")
 	TSubclassOf<AMyNode> BP_MyNode;
 
+	// Ref to the current possessed pawn.
 	UPROPERTY()
 	AActor* PlayerCurrentPawn;
 	
 	UPROPERTY()
-	class ALockedPawn* LockedPawn;
-	
+	ALockedPawn* LockedPawn;
+
+	// Choose the BP class based on PlayerPawn in this slot.
+	UPROPERTY(EditAnywhere, Category = "Player")
+	TSubclassOf<APlayerPawn> BP_PlayerPawn;
+
 	UPROPERTY()
-	class APlayerPawn* PlayerPawn;
+	APlayerPawn* PlayerPawn;
 	
 	// The size of the sphere marking each node
 	UPROPERTY(EditAnywhere, Category = "Node")
@@ -66,6 +81,7 @@ public:
 	UPROPERTY(VisibleAnywhere, Category = "Node")
 	TArray<AMyNode*> Nodes;
 
+	// Array containing the current path displayed on the screen.
 	UPROPERTY()
 	TArray<AMyNode*> CurrentPathTree;
 	
@@ -86,6 +102,12 @@ public:
 	// one of the algorithms. Decides if we should display
 	// that path on screen.
 	bool bIsPathGenerated = false;
+
+	UPROPERTY()
+	ADijkstra2* Dijkstra;
+
+	UPROPERTY()
+	AAStar* AStar;
 	
 
 	//---------------- Runtime editable variables ----------------//
@@ -108,7 +130,7 @@ public:
 
 	// If we should display a sphere marking the NodeConnectionRadius
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Node|Runtime")
-	bool bShowConnectionRadius;
+	bool bShowConnectionRadius = false;
 
 	// If the text above each node should be visible
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Node|Runtime")
@@ -233,6 +255,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void SwitchPawn();
 
+	UFUNCTION()
 	void UpdateNodeNameRotations();
 
 	UFUNCTION(BlueprintImplementableEvent)

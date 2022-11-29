@@ -6,6 +6,12 @@
 #include "GameFramework/Pawn.h"
 #include "LockedPawn.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMoveSignature);
+
+/**
+ * Spectator pawn that rotates around the center
+ * of the map with simple controls.
+ */
 UCLASS()
 class PATHFINDING_API ALockedPawn : public APawn
 {
@@ -13,16 +19,13 @@ class PATHFINDING_API ALockedPawn : public APawn
 
 public:
 	ALockedPawn();
-
 protected:
 	virtual void BeginPlay() override;
-
 public:	
-	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-
-	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+	FOnMoveSignature OnMoveDelegate;
 
 	UPROPERTY(EditAnywhere, Category = "Node")
 	class USphereComponent* Collision;
@@ -33,12 +36,13 @@ public:
 	UPROPERTY(EditAnywhere)
 	class USpringArmComponent* SpringArm;
 
-	// The target arm length for the spring arm
+	// The target arm length for the spring arm, used for interpolation
 	float TargetLength;
+
+	FVector PreviousFrameLocation = FVector::ZeroVector;
 
 	void RotateRight(const float Value);
 	void RotateUp(const float Value);
 	void ZoomIn();
 	void ZoomOut();
-
 };

@@ -24,10 +24,18 @@ void APathfindingGameModeBase::BeginPlay()
 	// We know that the initial pawn is a LockedPawn because it is set in the game mode settings
 	PlayerCurrentPawn = GetWorld()->GetFirstPlayerController()->GetPawn();
 	LockedPawn = Cast<ALockedPawn>(PlayerCurrentPawn);
-	PlayerPawn = GetWorld()->SpawnActor<APlayerPawn>(FVector(), FRotator());
-	PlayerPawn->GameModeBase = this;
+	PlayerPawn = Cast<APlayerPawn>(GetWorld()->SpawnActor<APlayerPawn>(BP_PlayerPawn, FVector(), FRotator()));
+	if (PlayerPawn) PlayerPawn->GameModeBase = this;
+
+	Dijkstra = Cast<ADijkstra2>(GetWorld()->SpawnActor(ADijkstra2::StaticClass()));
+	AStar = Cast<AAStar>(GetWorld()->SpawnActor(AAStar::StaticClass()));
 	
 	if (NumberOfNodes < 2) NumberOfNodes = 2;
+	
+	TScriptDelegate<> Delegate{};
+	Delegate.BindUFunction(this, FName("UpdateNodeNameRotations"));
+	PlayerPawn->OnMoveDelegate.Add(Delegate);
+	LockedPawn->OnMoveDelegate.Add(Delegate);
 }
 
 void APathfindingGameModeBase::Tick(float DeltaTime)
@@ -53,7 +61,6 @@ void APathfindingGameModeBase::Tick(float DeltaTime)
 		}
 	}
 	DrawPath();
-	UpdateNodeNameRotations();
 }
 
 void APathfindingGameModeBase::SpawnNodes(ESpawnMethod SpawnMethod)
@@ -78,8 +85,9 @@ void APathfindingGameModeBase::SpawnNodes(ESpawnMethod SpawnMethod)
 			Node->WaitTime = 0;
 		}
 	}
-
+	
 	if (!bShowNodeNames) ToggleNodeNames(false);
+	UpdateNodeNameRotations();
 }
 
 void APathfindingGameModeBase::SpawnRandom()
@@ -137,6 +145,7 @@ void APathfindingGameModeBase::SpawnGrid()
 
 void APathfindingGameModeBase::SpawnRandomGrid()
 {
+	OnError.Broadcast("Sorry, the Spawn Random Grid method is not implemented.");
 }
 
 FString APathfindingGameModeBase::GenerateName(int32 i)
@@ -174,40 +183,47 @@ void APathfindingGameModeBase::Pathfind(EAlgorithm Algorithm)
 
 	// In case we want to run another algorithm on the same node set
 	ResetNodes();
+	bIsPathGenerated = false;
 	
 	switch (Algorithm)
 	{
 	case EAlgorithm::Dijkstra:
+		if (Dijkstra)
 		{
-			if (ADijkstra2* Dijkstra = Cast<ADijkstra2>(GetWorld()->SpawnActor(ADijkstra2::StaticClass())))
+			// If the Dijkstra algorithm succeeded, enable a variable used in tick to draw the shortest path
+			if (Dijkstra->Start(Nodes, OriginNode, DestinationNode))
 			{
-				// If the Dijkstra algorithm succeeded, enable a variable used in tick to draw the shortest path
-				if (Dijkstra->Start(Nodes, OriginNode, DestinationNode))
-				{
-					CurrentPathTree = Dijkstra->ShortestPathTree;
-					bIsPathGenerated = true;
-				}
-				else UE_LOG(LogTemp, Warning, TEXT("Dijkstra failed."));
+				CurrentPathTree = Dijkstra->ShortestPathTree;
+				bIsPathGenerated = true;
 			}
-			else { UE_LOG(LogTemp, Warning, TEXT("Could not cast Dijkstra!")); }
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Dijkstra failed."));
+				OnError.Broadcast("Dijkstra algorithm failed.");
+			}
 		}
+		else  OnError.Broadcast("Unable to run Dijkstra algorithm. The object is not valid.");
 		break;
 	case EAlgorithm::AStar:
+		if (AStar)
 		{
-			if (auto* AStar = Cast<AAStar>(GetWorld()->SpawnActor(AAStar::StaticClass())))
+			// If the AStar algorithm succeeded, enable a variable used in tick to draw the shortest path
+			if (AStar->Start(Nodes, OriginNode, DestinationNode))
 			{
-				// If the AStar algorithm succeeded, enable a variable used in tick to draw the shortest path
-				if (AStar->Start(Nodes, OriginNode, DestinationNode))
-				{
-					CurrentPathTree = AStar->ShortestPathTree;
-					bIsPathGenerated = true;
-				}
-				else UE_LOG(LogTemp, Warning, TEXT("AStar failed."));
+				CurrentPathTree = AStar->ShortestPathTree;
+				bIsPathGenerated = true;
 			}
-			else { UE_LOG(LogTemp, Warning, TEXT("Could not cast AStar!")); }
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("AStar failed."));
+				OnError.Broadcast("A* algorithm failed.");
+			}
 		}
+		else OnError.Broadcast("Unable to run A* algorithm. The object is not valid."); 
 		break;
 	case EAlgorithm::TSM:
+		UE_LOG(LogTemp, Warning, TEXT("OnError.Broadcast()"));
+		OnError.Broadcast("Sorry, the TSM algorithm is not implemented.");
 		break;
 	}
 }
@@ -366,29 +382,37 @@ void APathfindingGameModeBase::ToggleNodeNames(bool Visible)
 {
 	for (const auto Node : Nodes)
 	{
-		Node->NameDisplay->ToggleVisibility();
+		Node->NameDisplay->SetVisibility(Visible);
 	}
-	bShowNodeNames = !bShowNodeNames;
+	bShowNodeNames = Visible;
 }
 
 void APathfindingGameModeBase::SwitchPawn()
 {
 	if (PlayerCurrentPawn == LockedPawn)
 	{
-		// Make a smooth transition
-		PlayerPawn->SetActorRotation(LockedPawn->Camera->GetComponentRotation());
-		PlayerPawn->SetActorLocation(LockedPawn->Camera->GetComponentLocation());
-		GetWorld()->GetFirstPlayerController()->Possess(PlayerPawn);
-		GetWorld()->GetFirstPlayerController()->SetInputMode(FInputModeGameOnly());
-		GetWorld()->GetFirstPlayerController()->SetShowMouseCursor(false);
-		PlayerCurrentPawn = PlayerPawn;
+		if (PlayerPawn)
+		{
+			// Make a smooth transition
+			PlayerPawn->SetActorRotation(LockedPawn->Camera->GetComponentRotation());
+			PlayerPawn->SetActorLocation(LockedPawn->Camera->GetComponentLocation());
+			GetWorld()->GetFirstPlayerController()->Possess(PlayerPawn);
+			GetWorld()->GetFirstPlayerController()->SetInputMode(FInputModeGameOnly());
+			GetWorld()->GetFirstPlayerController()->SetShowMouseCursor(false);
+			PlayerCurrentPawn = PlayerPawn;
+		}
+		else OnError.Broadcast("Could not switch camera mode.");
 	}
 	else
 	{
-		GetWorld()->GetFirstPlayerController()->Possess(LockedPawn);
-		GetWorld()->GetFirstPlayerController()->SetInputMode(FInputModeGameAndUI());
-		GetWorld()->GetFirstPlayerController()->SetShowMouseCursor(true);
-		PlayerCurrentPawn = LockedPawn;
+		if (LockedPawn)
+		{
+			GetWorld()->GetFirstPlayerController()->Possess(LockedPawn);
+			GetWorld()->GetFirstPlayerController()->SetInputMode(FInputModeGameAndUI());
+			GetWorld()->GetFirstPlayerController()->SetShowMouseCursor(true);
+			PlayerCurrentPawn = LockedPawn;
+		}
+		else OnError.Broadcast("Could not switch camera mode.");
 	}
 	PawnSwitched();
 }
@@ -418,4 +442,3 @@ void APathfindingGameModeBase::UpdateNodeNameRotations()
 				FVector::Dist(Node->NameDisplay->GetComponentLocation(), PlayerLocation) / 5000)));
 	}
 }
-

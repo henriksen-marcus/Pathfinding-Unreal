@@ -7,7 +7,7 @@
 
 AMyNode::AMyNode()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 
 	Collision = CreateDefaultSubobject<USphereComponent>(TEXT("Collision"));
 	// Custom collision preset/object type for only overlapping with other nodes
@@ -19,7 +19,6 @@ AMyNode::AMyNode()
 	NameDisplay->SetRelativeLocation(FVector(0, 0, 30.f));
 	NameDisplay->SetRelativeScale3D(FVector(0.8f));
 	if (TextMaterial) NameDisplay->SetTextMaterial(TextMaterial);
-	
 	
 	WaitTime = 0.f;
 	bVisited = false;
@@ -43,7 +42,6 @@ void AMyNode::Tick(float DeltaTime)
 void AMyNode::InitNode(const FString& _Name)
 {
 	Name = _Name;
-	;
 	FString Num = FString::SanitizeFloat(FMath::TruncToFloat(WaitTime/500.f), 0);
 	FString NewName = Name + ": " + Num;
 	if (NameDisplay) NameDisplay->SetText(FText::FromString(NewName));

@@ -41,11 +41,22 @@ void ALockedPawn::BeginPlay()
 void ALockedPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	
+
+	// Interp the arm length for the spring arm, for smoother movement
 	SpringArm->TargetArmLength = FMath::FInterpTo(SpringArm->TargetArmLength, TargetLength, DeltaTime, 15.f);
+
+	
+	FVector MovementDelta = Camera->GetComponentLocation() - PreviousFrameLocation;
+	PreviousFrameLocation = Camera->GetComponentLocation();
+
+	// If this is positive, we are moving
+	if (MovementDelta.Size())
+	{
+		OnMoveDelegate.Broadcast();
+		UE_LOG(LogTemp, Warning, TEXT("Moving. %f"), MovementDelta.Size());
+	}
 }
 
-// Called to bind functionality to input
 void ALockedPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
